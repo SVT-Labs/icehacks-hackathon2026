@@ -191,7 +191,20 @@ export function RoomScreen({ code }: { code: string }) {
         {room.phase === "gameOver" ? <GameOver ctx={ctx} /> : null}
       </main>
 
-      {showSea ? <PlayerSea room={room} meId={meId} now={now} /> : null}
+      {showSea ? (
+        <PlayerSea
+          room={room}
+          meId={meId}
+          now={now}
+          onKick={
+            ctx.isHost && room.phase === "lobby"
+              ? (targetId) => {
+                  api.host(code, token, { action: "kick", targetId }).catch(() => {});
+                }
+              : undefined
+          }
+        />
+      ) : null}
     </>
   );
 }

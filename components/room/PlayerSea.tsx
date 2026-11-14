@@ -15,10 +15,13 @@ export function PlayerSea({
   room,
   meId,
   now,
+  onKick,
 }: {
   room: PublicRoom;
   meId: string;
   now: number;
+  /** Given to the host in the lobby: removes another player. */
+  onKick?: (playerId: string) => void;
 }) {
   const players = playersInOrder(room);
   return (
@@ -61,13 +64,20 @@ export function PlayerSea({
                     <span className="sr-only"> (you)</span>
                   ) : null}
                 </p>
-                <p className="tabular text-sm font-semibold text-white/85">
-                  {room.phase === "lobby"
-                    ? player.isBot
-                      ? "bot"
-                      : " "
-                    : player.score}
-                </p>
+                {onKick && player.id !== meId && !player.isBot ? (
+                  <button
+                    type="button"
+                    onClick={() => onKick(player.id)}
+                    aria-label={`Remove ${player.name} from the lobby`}
+                    className="mt-0.5 rounded-md bg-white/15 px-2 text-sm font-semibold text-white hover:bg-white/25"
+                  >
+                    Remove
+                  </button>
+                ) : (
+                  <p className="tabular text-sm font-semibold text-white/85">
+                    {room.phase === "lobby" ? (player.isBot ? "bot" : " ") : player.score}
+                  </p>
+                )}
               </li>
             ))}
           </ul>

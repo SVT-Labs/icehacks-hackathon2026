@@ -117,6 +117,56 @@ docs/BACKEND_PROMPT.md  The brief the backend is built from
 - Players are told, where they type, that everyone in the room will read what they write.
 - Nicknames are not sent to the AI.
 
+## Backend
+
+The API lives in `app/api/rooms/**` and stores rooms in Firebase Realtime Database. With no Firebase server variables set it uses an in-memory store instead, so `npm run dev` and `npm test` work without an account.
+
+### Set up Firebase
+
+1. Create a project at [console.firebase.google.com](https://console.firebase.google.com).
+2. **Build → Realtime Database → Create database.** Pick a region and start in locked mode.
+3. In the database's **Rules** tab, paste the contents of `database.rules.json` and publish. Browsers may then read `rooms/{code}/public` only; everything else is server-only.
+4. **Project settings → Service accounts → Generate new private key.** This downloads a JSON file. Do not commit it.
+5. **Project settings → General → Your apps → Add app → Web** to get the web configuration.
+
+### Environment variables
+
+Put these in `.env.local` for local runs and in Netlify's site settings for the deployed site.
+
+| Variable | Where the value comes from |
+|---|---|
+| `FIREBASE_PROJECT_ID` | `project_id` in the service-account JSON |
+| `FIREBASE_CLIENT_EMAIL` | `client_email` in the service-account JSON |
+| `FIREBASE_PRIVATE_KEY` | `private_key` in the service-account JSON, kept in quotes with its line breaks written as `\n` |
+| `FIREBASE_DATABASE_URL` | The URL at the top of the Realtime Database page, such as `https://<project>-default-rtdb.<region>.firebasedatabase.app` |
+| `NEXT_PUBLIC_FIREBASE_DATABASE_URL` | The same database URL (`databaseURL` in the web configuration). Setting it switches the browser from demo mode to the backend. |
+| `NEXT_PUBLIC_FIREBASE_API_KEY` | `apiKey` in the web configuration |
+| `NEXT_PUBLIC_FIREBASE_PROJECT_ID` | `projectId` in the web configuration |
+| `ANTHROPIC_API_KEY` | An API key from [platform.claude.com](https://platform.claude.com). Without it players write their own lies. |
+| `LLM_MODEL` | Optional; defaults to `claude-sonnet-5-5` |
+| `DEMO_MODE` | `true` returns canned lies and never calls the AI |
+| `LLM_DAILY_CAP` | Optional; most AI calls per UTC day, default 1500 |
+
+The three service-account fields are stored separately rather than as the whole JSON file because Netlify functions have a small limit on total environment size.
+
+### Check it
+
+```bash
+npm test
+```
+
+```bash
+npm run dev
+```
+
+With the dev server running, in a second terminal (`BASE_URL` defaults to `http://localhost:3000`):
+
+```bash
+npm run smoke
+```
+
+The smoke script plays a solo game over HTTP and exits non-zero on any failure. Point `BASE_URL` at a deployed site to check it.
+
 ## Known limits
 
 - In demo mode a room exists only in one browser, so friends on other devices cannot join it. Playing across devices needs the live backend.

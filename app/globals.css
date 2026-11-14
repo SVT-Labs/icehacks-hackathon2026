@@ -1,0 +1,220 @@
+@import "tailwindcss";
+
+/* ------------------------------------------------------------------
+   Design tokens. Arctic day by default, arctic night for dark mode.
+   Components use the Tailwind names from the @theme block below
+   (bg-surface, text-ink, border-line ...), never raw hex values.
+   ------------------------------------------------------------------ */
+
+:root {
+  --sky: #eaf6ff;
+  --sky-deep: #d5ecfb;
+  --surface: #ffffff;
+  --surface-2: #f1f8fe;
+  --ink: #0b2545;
+  --ink-soft: #3e5878;
+  --line: #bbd9ee;
+  --control: #5c7fa3;
+
+  --primary: #1668c7;
+  --primary-lip: #0e4a92;
+  --primary-ink: #ffffff;
+  --accent: #ff8a3d;
+  --accent-lip: #d9661b;
+  --accent-ink: #0b2545;
+
+  --water: #1b5e9e;
+  --water-deep: #0f3f73;
+  --foam: #cfe8fa;
+  --ice: #f7fcff;
+  --ice-edge: #a8d5f2;
+  --ice-crack: #2f77ad;
+
+  --good: #0b7a54;
+  --good-bg: #dbf5e9;
+  --bad: #c12e37;
+  --bad-bg: #fde4e5;
+  --ai: #6340cf;
+  --ai-bg: #ede7fc;
+  --gold: #b7791f;
+  --gold-bg: #fdf0cf;
+
+  --focus: #ff8a3d;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --sky: #071a2f;
+    --sky-deep: #0a2340;
+    --surface: #10294a;
+    --surface-2: #0c2140;
+    --ink: #eaf6ff;
+    --ink-soft: #a9c4de;
+    --line: #234870;
+    --control: #7397bd;
+
+    --primary: #4ca3f5;
+    --primary-lip: #2374c4;
+    --primary-ink: #06203b;
+    --accent: #ff9a57;
+    --accent-lip: #c9682a;
+    --accent-ink: #1c1005;
+
+    --water: #0c3b6b;
+    --water-deep: #072848;
+    --foam: #7fb4dc;
+    --ice: #e6f4fd;
+    --ice-edge: #86bde3;
+    --ice-crack: #2f77ad;
+
+    --good: #4ad6a2;
+    --good-bg: #0f3b33;
+    --bad: #ff8087;
+    --bad-bg: #47202a;
+    --ai: #b9a3ff;
+    --ai-bg: #2a2360;
+    --gold: #f2c35b;
+    --gold-bg: #3d2f0c;
+
+    --focus: #ffb37d;
+  }
+}
+
+@theme inline {
+  --color-sky: var(--sky);
+  --color-sky-deep: var(--sky-deep);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-ink: var(--ink);
+  --color-ink-soft: var(--ink-soft);
+  --color-line: var(--line);
+  --color-control: var(--control);
+  --color-primary: var(--primary);
+  --color-primary-lip: var(--primary-lip);
+  --color-primary-ink: var(--primary-ink);
+  --color-accent: var(--accent);
+  --color-accent-lip: var(--accent-lip);
+  --color-accent-ink: var(--accent-ink);
+  --color-water: var(--water);
+  --color-water-deep: var(--water-deep);
+  --color-foam: var(--foam);
+  --color-ice: var(--ice);
+  --color-ice-edge: var(--ice-edge);
+  --color-ice-crack: var(--ice-crack);
+  --color-good: var(--good);
+  --color-good-bg: var(--good-bg);
+  --color-bad: var(--bad);
+  --color-bad-bg: var(--bad-bg);
+  --color-ai: var(--ai);
+  --color-ai-bg: var(--ai-bg);
+  --color-gold: var(--gold);
+  --color-gold-bg: var(--gold-bg);
+
+  --font-display: var(--font-fredoka), ui-rounded, "Segoe UI", system-ui, sans-serif;
+  --font-sans: var(--font-nunito), "Segoe UI", system-ui, sans-serif;
+
+  --radius-card: 1.25rem;
+  --radius-control: 0.875rem;
+
+  --animate-bob: bob 3.2s ease-in-out infinite;
+  --animate-shiver: shiver 0.28s linear infinite;
+  --animate-drift: drift 14s linear infinite;
+  --animate-blink: blink 4.6s infinite;
+  --animate-pop: pop 0.32s ease-out both;
+}
+
+@keyframes bob {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-3px); }
+}
+
+@keyframes shiver {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-1.2px); }
+  75% { transform: translateX(1.2px); }
+}
+
+@keyframes drift {
+  from { transform: translateX(0); }
+  to { transform: translateX(-120px); }
+}
+
+@keyframes blink {
+  0%, 92%, 100% { transform: scaleY(1); }
+  95% { transform: scaleY(0.1); }
+}
+
+@keyframes pop {
+  from { transform: scale(0.9); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+/* Tailwind's utilities live in a cascade layer, and plain CSS outside any
+   layer always beats them. Everything below is therefore put in a layer too,
+   so a utility class on an element can still override these defaults. */
+
+@layer base {
+  html {
+    color-scheme: light dark;
+  }
+
+  body {
+    background: var(--sky);
+    color: var(--ink);
+    font-family: var(--font-sans);
+    font-size: 1rem;
+    line-height: 1.5;
+  }
+
+  h1, h2, h3 {
+    font-family: var(--font-display);
+    line-height: 1.15;
+    text-wrap: balance;
+  }
+
+  p {
+    text-wrap: pretty;
+  }
+
+  /* One visible focus style everywhere, for keyboard users only. */
+  :focus-visible {
+    outline: 3px solid var(--focus);
+    outline-offset: 2px;
+  }
+
+  ::selection {
+    background: var(--accent);
+    color: var(--accent-ink);
+  }
+}
+
+@layer components {
+  /* A raised "lip" under buttons and cards that presses down on click. */
+  .lip {
+    box-shadow: 0 4px 0 0 var(--lip, var(--line));
+    transition: transform 80ms ease, box-shadow 80ms ease;
+  }
+
+  .lip-press:active:not(:disabled) {
+    transform: translateY(3px);
+    box-shadow: 0 1px 0 0 var(--lip, var(--line));
+  }
+
+  .tabular {
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Hide scrollbars on the penguin strip without disabling scrolling. */
+  .quiet-scroll {
+    scrollbar-width: thin;
+    scrollbar-color: var(--foam) transparent;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+  }
+}

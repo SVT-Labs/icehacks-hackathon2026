@@ -166,7 +166,8 @@ function adminDb(): Database {
             projectId: process.env.FIREBASE_PROJECT_ID,
             clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
             // Netlify and .env files carry the line breaks as the two characters \n.
-            privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, "\n"),
+            // Quotes pasted into a hosting dashboard along with the key are dropped.
+            privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/^"|"$/g, "").replace(/\\n/g, "\n"),
           }),
           databaseURL: process.env.FIREBASE_DATABASE_URL,
         },
@@ -175,7 +176,8 @@ function adminDb(): Database {
   return getDatabase(app);
 }
 
-function firebaseDriver(db: Database): Driver {
+/** Exported for tests, which pass a fake database. */
+export function firebaseDriver(db: Database): Driver {
   const roomRef = (code: string) => db.ref(`rooms/${code}`);
   return {
     async create(code, raw, createdAt) {
@@ -203,7 +205,11 @@ function firebaseDriver(db: Database): Driver {
             return null;
           }
           sawRoom = true;
-          return fn(current);
+          // Never abort here: an abort on the first call is decided on the
+          // local cache, which may be stale, and the server is never asked.
+          // Returning the value unchanged makes the server compare it; a stale
+          // cache then reruns us on fresh data, a fresh one writes nothing new.
+          return fn(current) ?? current;
         },
         undefined,
         false,

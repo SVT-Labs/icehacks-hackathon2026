@@ -149,14 +149,7 @@ export async function draftLies(
   const apiKey = env.ANTHROPIC_API_KEY;
   if (!apiKey && !deps.parse) return { verdict: "unavailable", reason: "no_key" };
 
-  try {
-    const cap = Number(env.LLM_DAILY_CAP ?? "") || 1500;
-    if ((await countLlmCall(now())) > cap) return { verdict: "unavailable", reason: "daily_cap" };
-  } catch (error) {
-    console.error("[llm] daily counter failed", error instanceof Error ? error.message : error);
-    return { verdict: "unavailable", reason: "counter" };
-  }
-
+  const cap = Number(env.LLM_DAILY_CAP ?? "") || 1500;
   const parse = deps.parse ?? defaultParse(apiKey!);
   const model = env.LLM_MODEL || "claude-sonnet-5-5";
   const deadline = now() + TOTAL_BUDGET_MS;
@@ -165,6 +158,13 @@ export async function draftLies(
   for (let attempt = 0; attempt < 2; attempt++) {
     const remaining = deadline - now();
     if (remaining < 1000) return { verdict: "unavailable", reason: "timeout" };
+    // Every call counts toward the daily cap, the retry included.
+    try {
+      if ((await countLlmCall(now())) > cap) return { verdict: "unavailable", reason: "daily_cap" };
+    } catch (error) {
+      console.error("[llm] daily counter failed", error instanceof Error ? error.message : error);
+      return { verdict: "unavailable", reason: "counter" };
+    }
     try {
       const response = await parse(
         {

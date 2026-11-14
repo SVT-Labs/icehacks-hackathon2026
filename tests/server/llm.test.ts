@@ -98,6 +98,13 @@ describe("draftLies", () => {
     expect(parse).toHaveBeenCalledTimes(2);
   });
 
+  it("counts the retry toward the daily cap", async () => {
+    const parse = parseReturning({ parsed_output: null }, { parsed_output: GOOD });
+    const result = await draftLies(TRUTHS, 3, { parse, env: { ...env, LLM_DAILY_CAP: "1" } });
+    expect(result).toEqual({ verdict: "unavailable", reason: "daily_cap" });
+    expect(parse).toHaveBeenCalledTimes(1);
+  });
+
   it("gives up when the time budget runs out", async () => {
     let clock = 0;
     const parse = vi.fn<Parse>().mockImplementation(async () => {

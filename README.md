@@ -1,1 +1,1 @@
-# Icehacks-hackathon2026
+# icehacks-hackathon2026

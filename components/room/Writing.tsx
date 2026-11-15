@@ -6,6 +6,7 @@ import { Button, Notice, Panel, Tag, cx } from "@/components/ui";
 import { sfx } from "@/lib/client/sfx";
 import { useDictation } from "@/lib/client/useDictation";
 import { LIMITS } from "@/lib/constants";
+import { sentenceProblem, tooAlike } from "@/lib/statement";
 import type { DraftSource, LieChoice, Truths } from "@/lib/types";
 import { Countdown } from "./Countdown";
 import { humans, useAction, type GameCtx } from "./shared";
@@ -26,6 +27,8 @@ function problemWith(text: string, what: string): string | null {
   const length = text.trim().length;
   if (length === 0) return `Write ${what} first.`;
   if (length < MIN) return `Make ${what} a little longer (at least ${MIN} characters).`;
+  // Key-mashing such as "aaaaaaaa" is refused here and again on the server.
+  if (sentenceProblem(text.trim())) return `Rewrite ${what} as a real sentence, in a few plain words.`;
   return null;
 }
 
@@ -78,8 +81,8 @@ export function Writing({ ctx }: { ctx: GameCtx }) {
       return null;
     }
     const clean: Truths = [truths[0].trim(), truths[1].trim()];
-    if (clean[0].toLowerCase() === clean[1].toLowerCase()) {
-      setFieldError("Your two truths are the same. Change one of them.");
+    if (tooAlike(clean[0], clean[1])) {
+      setFieldError("Your two truths are almost the same. Change one of them.");
       return null;
     }
     return clean;
@@ -118,8 +121,8 @@ export function Writing({ ctx }: { ctx: GameCtx }) {
       const problem = problemWith(ownLie, "your lie");
       if (problem) return setFieldError(problem);
       const text = ownLie.trim();
-      if (clean.some((t) => t.toLowerCase() === text.toLowerCase())) {
-        return setFieldError("Your lie is the same as one of your truths.");
+      if (clean.some((t) => tooAlike(t, text))) {
+        return setFieldError("Your lie is almost the same as one of your truths. Make it clearly different.");
       }
       lie = { kind: "own", text };
     } else {

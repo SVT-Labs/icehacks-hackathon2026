@@ -4,6 +4,7 @@
 
 import { LIMITS } from "@/lib/constants";
 import { GameError } from "@/lib/game";
+import { TOO_ALIKE, sentenceProblem, tooAlike } from "@/lib/statement";
 import { BLOCKLIST } from "./blocklist";
 
 export const UNSAFE_MESSAGE =
@@ -70,10 +71,23 @@ export function moderateName(name: string): string {
   return check(name, 1, LIMITS.NAME_MAX, "Your nickname");
 }
 
+/** A truth or a player's own lie: safe, and a real sentence rather than key-mashing. */
 export function moderateStatement(text: string): string {
-  return check(text, LIMITS.STATEMENT_MIN, LIMITS.STATEMENT_MAX, "Each statement");
+  const clean = check(text, LIMITS.STATEMENT_MIN, LIMITS.STATEMENT_MAX, "Each statement");
+  const problem = sentenceProblem(clean);
+  if (problem) throw new GameError("bad_request", problem);
+  return clean;
 }
 
 export function moderateTruths(truths: readonly [string, string]): [string, string] {
-  return [moderateStatement(truths[0]), moderateStatement(truths[1])];
+  const clean: [string, string] = [moderateStatement(truths[0]), moderateStatement(truths[1])];
+  if (tooAlike(clean[0], clean[1])) throw new GameError("bad_request", TOO_ALIKE);
+  return clean;
+}
+
+/** A lie the player wrote: checked like a truth, and unlike both truths. */
+export function moderateOwnLie(text: string, truths: readonly [string, string]): string {
+  const clean = moderateStatement(text);
+  if (truths.some((truth) => tooAlike(truth, clean))) throw new GameError("bad_request", TOO_ALIKE);
+  return clean;
 }

@@ -235,3 +235,53 @@ describe("draft", () => {
     expect(fourth.body.code).toBe("rate_limited");
   });
 });
+
+describe("key-mashing instead of sentences", () => {
+  it("refuses a card of repeated letters, for truths and for an own lie", async () => {
+    const { host, code } = await writingRoom();
+    const mashed = await call("card", code, {
+      token: host.token,
+      body: { truths: ["aaaaaaaa", "aaaaaaaaa"], lie: { kind: "own", text: "aaaaaaaaaa" } },
+    });
+    expect(mashed.status).toBe(400);
+    expect(mashed.body.code).toBe("bad_request");
+
+    const mashedLie = await call("card", code, {
+      token: host.token,
+      body: { truths: TRUTHS, lie: { kind: "own", text: "aaaaaaaaaa" } },
+    });
+    expect(mashedLie.status).toBe(400);
+    expect(publicRoom(code).players[host.playerId].ready).toBe(false);
+  });
+
+  it("refuses key-mashed truths before any AI call", async () => {
+    const { host, code } = await writingRoom();
+    const draft = await call("draft", code, { token: host.token, body: { truths: ["asdfghjkl", "qwertyuiop"] } });
+    expect(draft.status).toBe(400);
+  });
+
+  it("refuses statements that differ only in punctuation or a few letters", async () => {
+    const { host, code } = await writingRoom();
+    const sameTruths = await call("card", code, {
+      token: host.token,
+      body: { truths: [TRUTHS[0], `${TRUTHS[0].slice(0, -1)}!!`], lie: { kind: "own", text: "I have run two full marathons." } },
+    });
+    expect(sameTruths.status).toBe(400);
+
+    const lieIsTruth = await call("card", code, {
+      token: host.token,
+      body: { truths: TRUTHS, lie: { kind: "own", text: `${TRUTHS[1]} x` } },
+    });
+    expect(lieIsTruth.status).toBe(400);
+  });
+
+  it("still accepts a normal card with an own lie", async () => {
+    const { host, code } = await writingRoom();
+    const ok = await call("card", code, {
+      token: host.token,
+      body: { truths: TRUTHS, lie: { kind: "own", text: "I have run two full marathons." } },
+    });
+    expect(ok.status).toBe(200);
+    expect(publicRoom(code).players[host.playerId].ready).toBe(true);
+  });
+});

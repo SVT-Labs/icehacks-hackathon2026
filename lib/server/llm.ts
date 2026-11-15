@@ -10,6 +10,7 @@ import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
 import { z } from "zod";
 import { LIMITS } from "@/lib/constants";
 import { countLlmCall } from "./store";
+import { tooAlike } from "@/lib/statement";
 import { isUnsafe } from "./moderation";
 
 export type LieDraft =
@@ -99,7 +100,7 @@ export function checkOutput(
       problems.push(
         `"${lie}" is ${lie.length} characters; it must be ${LIMITS.STATEMENT_MIN} to ${LIMITS.STATEMENT_MAX}.`,
       );
-    } else if (seen.has(key)) {
+    } else if (seen.has(key) || truths.some((truth) => tooAlike(truth, lie))) {
       problems.push(`"${lie}" repeats a truth or another lie.`);
     } else if (isUnsafe(lie)) {
       problems.push(`"${lie}" is not suitable for the game.`);

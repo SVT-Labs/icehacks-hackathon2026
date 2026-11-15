@@ -81,7 +81,7 @@ npm run lint
 npm run build
 ```
 
-`npm test` runs 83 tests: the rules engine (scoring with exact numbers, every phase change, bots, late joiners, leaving), the API routes played end to end, the checks on the AI's answers, and a test that nothing public reveals the lie before its reveal.
+`npm test` runs 118 tests: the rules engine (scoring with exact numbers, every phase change, bots, late joiners, leaving), the API routes played end to end, the checks on the AI's answers and on what players type, and a test that nothing public reveals the lie before its reveal.
 
 With the dev server running, two more scripts exercise the real thing over HTTP. Both also work against the deployed site with `BASE_URL=https://...`.
 
@@ -93,7 +93,7 @@ npm run smoke
 npm run security
 ```
 
-`npm run smoke` plays a whole solo game. `npm run security` plays a hostile visitor and makes 54 checks: it tries to read the private half of a room and to write to the database with no login, uses wrong, missing and borrowed tokens, calls host actions as a guest, sends malformed input, tries to peek at other players' cards, and replays stale and repeated guesses.
+`npm run smoke` plays a whole solo game. `npm run security` plays a hostile visitor and makes 56 checks: it tries to read the private half of a room and to write to the database with no login, uses wrong, missing and borrowed tokens, calls host actions as a guest, sends malformed input, tries to peek at other players' cards, replays stale and repeated guesses, and submits a card of key-mashing.
 
 ## Settings
 
@@ -133,6 +133,7 @@ docs/BACKEND_PROMPT.md  The brief the backend was built from
 - Players are told, where they type, that everyone in the room will read what they write.
 - Nicknames are not sent to the AI.
 - Which statement is the lie is stored where browsers cannot read it, and only the server writes to the database. `database.rules.json` allows one thing: reading the public half of a room you know the code of.
+- A statement has to read like a sentence. Key-mashing such as "aaaaaaaa", and statements that copy each other, are refused in the writing screen and again on the server, because a card nobody can reason about would hand its author points for luck.
 - Every action is checked on the server against a secret token given to that player when they joined. The host's actions are refused for anyone else.
 - What players type is shown as plain text, never as HTML, and is checked before it is stored: links, e-mail addresses, phone numbers and a block list are refused, and the AI refuses truths that bully someone or contain private details.
 - The API keys and the database's private key exist only on the server. A check of the production build found none of them in the code sent to browsers.

@@ -142,6 +142,18 @@ const writing = await call("GET", `/${code}`);
 expect("public room names the lie while writing", writing.text.includes("lieIndex"), false);
 expect("public room holds a token", writing.text.includes(A.token) || writing.text.includes(ben.token), false);
 expect("answers are not cached", writing.headers.get("cache-control"), "no-store");
+// Key-mashing makes a card nobody can reason about, so it is refused even
+// when sent straight to the API, past the checks in the writing screen.
+expect(
+  "card made of repeated letters",
+  (await call("POST", `/${code}/card`, { token: A.token, body: { truths: ["aaaaaaaa", "aaaaaaaaa"], lie: { kind: "own", text: "aaaaaaaaaa" } } })).status,
+  400,
+);
+expect(
+  "own lie that copies a truth",
+  (await call("POST", `/${code}/card`, { token: A.token, body: { truths: ["I have never broken a single bone.", "I grew up next door to a bakery."], lie: { kind: "own", text: "I grew up next door to a bakery!" } } })).status,
+  400,
+);
 await call("POST", `/${code}/card`, {
   token: A.token,
   body: {

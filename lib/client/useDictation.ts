@@ -30,13 +30,7 @@ function getCtor(): RecognitionCtor | null {
   return w.SpeechRecognition ?? w.webkitSpeechRecognition ?? null;
 }
 
-/**
- * Speech-to-text for one text field. `supported` is false in browsers without
- * speech recognition, and the caller then simply shows no microphone button.
- * Typing always works, so dictation is an extra and never a requirement.
- */
 export function useDictation(onText: (text: string) => void) {
-  // The server always answers "not supported"; the browser then checks.
   const supported = useSyncExternalStore(
     noSubscription,
     () => getCtor() !== null,
@@ -71,7 +65,6 @@ export function useDictation(onText: (text: string) => void) {
       }
       if (text.trim()) handler.current(text.trim());
     };
-    // Denied permission, no microphone, no speech: just stop listening.
     rec.onerror = () => setListening(false);
     rec.onend = () => setListening(false);
     recognition.current = rec;

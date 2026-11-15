@@ -1,9 +1,6 @@
-// The one interface the screens use to talk to the game. Two drivers
-// implement it:
-//   live  - the real backend: HTTP routes plus Firebase for live updates.
-//   demo  - the whole game running inside this browser, with no server.
-// The demo driver is what the frontend was built against, and it is also what
-// runs when no Firebase settings are present, so the app always starts.
+// Two drivers implement this interface. The live one uses the HTTP routes and
+// Firebase. The demo one runs the whole game inside the browser and is used
+// when no Firebase settings are present.
 
 import type {
   ApiErrorCode,
@@ -45,16 +42,11 @@ export interface GameApi {
   tick(code: string, token: string, seq: number): Promise<void>;
   host(code: string, token: string, action: HostAction): Promise<void>;
   me(code: string, token: string): Promise<MeResponse>;
-  /**
-   * Calls `onRoom` with the room now and after every change, or with null
-   * when the room does not exist. Returns a function that stops listening.
-   */
   subscribe(
     code: string,
     onRoom: (room: PublicRoom | null) => void,
     onError: (error: Error) => void,
   ): () => void;
-  /** The server's clock in ms. Countdowns must use this, not Date.now(). */
   now(): number;
 }
 
@@ -64,7 +56,6 @@ export const IS_LIVE =
 
 let cached: Promise<GameApi> | null = null;
 
-/** Loads the driver for this build. The heavy parts are fetched on demand. */
 export function loadApi(): Promise<GameApi> {
   if (!cached) {
     cached = IS_LIVE
@@ -74,7 +65,6 @@ export function loadApi(): Promise<GameApi> {
   return cached;
 }
 
-/** A sentence a player can read, for any thrown value. */
 export function errorMessage(error: unknown): string {
   if (error instanceof ApiFailure) return error.message;
   if (error instanceof TypeError) {

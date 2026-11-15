@@ -29,16 +29,16 @@ export async function POST(request: Request) {
       const code = newRoomCode();
       const now = Date.now();
       const state = engineCreateRoom({ code, playerId, name, avatar: body.avatar, now });
-      if (await createRoom(code, state, { [playerId]: token })) {
-        // The site promises rooms are gone after a day. Never fail the request over it.
-        try {
-          await cleanupOldRooms(now);
-        } catch (error) {
-          console.error("[api] room clean-up failed", error instanceof Error ? error.message : error);
-        }
-        const response: CreateRoomResponse = { code, playerId, token };
-        return json(response);
+      if (!(await createRoom(code, state, { [playerId]: token }))) continue;
+
+      // The site promises rooms are gone after a day. Never fail the request over it.
+      try {
+        await cleanupOldRooms(now);
+      } catch (error) {
+        console.error("[api] room clean-up failed", error instanceof Error ? error.message : error);
       }
+      const response: CreateRoomResponse = { code, playerId, token };
+      return json(response);
     }
     throw new Error("No free room code after several attempts");
   });

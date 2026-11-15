@@ -1,6 +1,3 @@
-// A small set of line icons drawn inline, so the app ships no icon font.
-// Icons are decorative by default; pass `label` when one stands alone.
-
 const PATHS = {
   copy: "M9 9h10v10H9z M5 15V5h10",
   check: "M5 12.5l4.5 4.5L19 7.5",

@@ -1,6 +1,5 @@
 import type { Avatar } from "@/lib/types";
 
-/** Body colours of the penguins. `shade` is the wing and outline tone. */
 export const AVATAR_COLORS: Record<
   Avatar,
   { body: string; shade: string; label: string }

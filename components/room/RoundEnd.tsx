@@ -7,14 +7,12 @@ import { Button, Notice, Tag, cx } from "@/components/ui";
 import { sfx } from "@/lib/client/sfx";
 import { byScore, clock, playersInOrder, signed, useAction, type GameCtx } from "./shared";
 
-/** Scoreboard after every card of a round has been shown. */
 export function RoundEnd({ ctx }: { ctx: GameCtx }) {
   const { api, code, token, room, meId, isHost, now } = ctx;
   const action = useAction();
   const summary = room.roundSummary;
   const splashed = summary?.splashedIds ?? [];
 
-  // Let everyone see the cracked ice for a moment before it gives way.
   const [broken, setBroken] = useState(false);
   const anySplash = splashed.length > 0;
   useEffect(() => {

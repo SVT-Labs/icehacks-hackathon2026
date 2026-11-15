@@ -1,19 +1,3 @@
-// Security checks against a running Thin Ice server and its database.
-//
-//   npm run dev         (in another terminal)
-//   npm run security    (or: BASE_URL=https://your-site.netlify.app npm run security)
-//
-// It plays the part of a curious or hostile visitor:
-//   1. Database: reads and writes sent straight to Firebase with no login.
-//      Only a room's public half may be read; nothing may be written.
-//   2. API: wrong, missing and borrowed tokens, guests using host actions,
-//      malformed input, peeking at other players' cards, stale and repeated
-//      guesses, a kicked player's token.
-//
-// The database part needs NEXT_PUBLIC_FIREBASE_DATABASE_URL, from the
-// environment or from .env.local. Without it only the API part runs.
-// Exits non-zero if any check fails.
-
 import fs from "node:fs";
 
 const BASE = (process.env.BASE_URL ?? "http://localhost:3000").replace(/\/$/, "");
@@ -55,15 +39,11 @@ async function call(method, path, { token, body, raw } = {}) {
   let data = null;
   try {
     data = JSON.parse(text);
-  } catch {
-    // Left as null; the status is what the checks look at.
-  }
+  } catch {}
   return { status: response.status, data, text, headers: response.headers };
 }
 
 const create = async (nickname) => (await call("POST", "", { body: { nickname, avatar: "teal" } })).data;
-
-// ---------- Set-up: room A (host Ada, guest Ben) and room B (host Cy) ----------
 
 const A = await create("Ada");
 if (!A?.code) {
@@ -73,8 +53,6 @@ if (!A?.code) {
 const ben = (await call("POST", `/${A.code}/join`, { body: { nickname: "Ben", avatar: "rose" } })).data;
 const B = await create("Cy");
 const code = A.code;
-
-// ---------- 1. The database, with no login ----------
 
 const db = databaseUrl().replace(/\/$/, "");
 if (!db) {
@@ -111,8 +89,6 @@ if (!db) {
   expect("reset the AI counter", (await direct("PUT", "meta/llm/2000-01-01.json", 1)).status, 401);
 }
 
-// ---------- 2. The API ----------
-
 console.log("--- who may call what");
 expect("me without a token", (await call("GET", `/${code}/me`)).status, 403);
 expect("me with a made-up token", (await call("GET", `/${code}/me`, { token: "not-a-real-token" })).status, 403);
@@ -142,8 +118,6 @@ const writing = await call("GET", `/${code}`);
 expect("public room names the lie while writing", writing.text.includes("lieIndex"), false);
 expect("public room holds a token", writing.text.includes(A.token) || writing.text.includes(ben.token), false);
 expect("answers are not cached", writing.headers.get("cache-control"), "no-store");
-// Key-mashing makes a card nobody can reason about, so it is refused even
-// when sent straight to the API, past the checks in the writing screen.
 expect(
   "card made of repeated letters",
   (await call("POST", `/${code}/card`, { token: A.token, body: { truths: ["aaaaaaaa", "aaaaaaaaa"], lie: { kind: "own", text: "aaaaaaaaaa" } } })).status,
@@ -198,7 +172,6 @@ const fay = (await call("POST", `/${B.code}/join`, { body: { nickname: "Fay", av
 expect("host kicks a player", (await call("POST", `/${B.code}/host`, { token: B.token, body: { action: "kick", targetId: fay.playerId } })).status, 200);
 expect("kicked player's token still works", (await call("GET", `/${B.code}/me`, { token: fay.token })).status === 200, false);
 
-// Tidy up the test rooms' players.
 await call("POST", `/${code}/leave`, { token: A.token });
 await call("POST", `/${code}/leave`, { token: ben.token });
 await call("POST", `/${B.code}/leave`, { token: B.token });

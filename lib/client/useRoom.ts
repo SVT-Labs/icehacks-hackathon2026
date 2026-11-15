@@ -7,17 +7,10 @@ import { clearIdentity, loadIdentity, saveIdentity, type Identity } from "./iden
 
 export type RoomStatus = "loading" | "ready" | "missing" | "error";
 
-/**
- * Everything a room screen needs: the live public room, who this browser is,
- * what only this player may know (`me`), and the driver to send actions with.
- * The component using it must be keyed by the room code.
- */
 export function useRoom(code: string) {
   const [api, setApi] = useState<GameApi | null>(null);
   const [room, setRoom] = useState<PublicRoom | null>(null);
   const [status, setStatus] = useState<RoomStatus>("loading");
-  // Read once on the first browser render. The server renders the loading
-  // screen whatever this is, so the two never disagree.
   const [identity, setIdentityState] = useState<Identity | null>(() =>
     typeof window === "undefined" ? null : loadIdentity(code),
   );
@@ -60,12 +53,8 @@ export function useRoom(code: string) {
     [code],
   );
 
-  // A saved identity only counts while the room still lists that player.
-  // After a kick, or when an old code is reused, the join screen shows again.
   const inRoom = Boolean(room && identity && room.players[identity.playerId]);
 
-  // Private state is fetched again on every phase change, after a refresh,
-  // and whenever a screen asks for it.
   const seq = room?.seq;
   const token = identity?.token;
   useEffect(() => {
@@ -77,7 +66,6 @@ export function useRoom(code: string) {
         if (!cancelled) setMe(next);
       })
       .catch(() => {
-        // The room screen shows connection problems; nothing to do here.
       });
     return () => {
       cancelled = true;
@@ -98,7 +86,6 @@ export function useRoom(code: string) {
   };
 }
 
-/** Re-renders on an interval and returns the server's current time. */
 export function useServerNow(api: GameApi | null, active: boolean, everyMs = 200): number {
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {

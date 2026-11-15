@@ -12,8 +12,6 @@ function cx(...parts: (string | false | null | undefined)[]) {
   return parts.filter(Boolean).join(" ");
 }
 
-// ---------- Button ----------
-
 type Variant = "primary" | "accent" | "quiet" | "danger";
 
 const VARIANT: Record<Variant, { cls: string; lip: string }> = {
@@ -39,7 +37,6 @@ export function Button({
   variant?: Variant;
   size?: "sm" | "md" | "lg";
   icon?: IconName;
-  /** Shows a spinner and blocks clicks while a request is running. */
   busy?: boolean;
 }) {
   const v = VARIANT[variant];
@@ -81,8 +78,6 @@ export function Spinner({ size = 18 }: { size?: number }) {
   );
 }
 
-// ---------- Panel ----------
-
 export function Panel({
   children,
   className,
@@ -103,8 +98,6 @@ export function Panel({
     </Tag>
   );
 }
-
-// ---------- Text field ----------
 
 export function TextField({
   label,
@@ -156,8 +149,6 @@ export function TextField({
     </div>
   );
 }
-
-// ---------- Small pieces ----------
 
 export function Tag({
   tone = "neutral",

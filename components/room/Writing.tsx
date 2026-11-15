@@ -23,11 +23,13 @@ const OPENERS = [
 const MAX = LIMITS.STATEMENT_MAX;
 const MIN = LIMITS.STATEMENT_MIN;
 
+const OPTION =
+  "flex cursor-pointer items-start gap-3 rounded-control border-2 p-3.5 has-focus-visible:outline-3 has-focus-visible:outline-offset-2 has-focus-visible:outline-(--focus)";
+
 function problemWith(text: string, what: string): string | null {
   const length = text.trim().length;
   if (length === 0) return `Write ${what} first.`;
   if (length < MIN) return `Make ${what} a little longer (at least ${MIN} characters).`;
-  // Key-mashing such as "aaaaaaaa" is refused here and again on the server.
   if (sentenceProblem(text.trim())) return `Rewrite ${what} as a real sentence, in a few plain words.`;
   return null;
 }
@@ -47,8 +49,6 @@ export function Writing({ ctx }: { ctx: GameCtx }) {
   const [restored, setRestored] = useState(false);
   const lastFocused = useRef<0 | 1>(0);
 
-  // After a refresh, bring back what the server remembers of this player's
-  // draft. This runs once, the first time the private state arrives.
   if (!restored && me) {
     setRestored(true);
     if (me.draft && candidates === null && !truths[0] && !truths[1]) {
@@ -113,6 +113,14 @@ export function Writing({ ctx }: { ctx: GameCtx }) {
     action.setError(null);
   }
 
+  function startWith(opener: string) {
+    let target: 0 | 1 = lastFocused.current;
+    if (!truths[0].trim()) target = 0;
+    else if (!truths[1].trim()) target = 1;
+    setTruth(target, opener);
+    document.getElementById(`truth-${target}`)?.focus();
+  }
+
   async function lockIn() {
     const clean = checkTruths();
     if (!clean || pick === null) return;
@@ -138,6 +146,16 @@ export function Writing({ ctx }: { ctx: GameCtx }) {
   const people = humans(room);
   const readyCount = people.filter((p) => p.ready).length;
   const waitingFor = people.filter((p) => !p.ready && p.id !== meId).map((p) => p.name);
+
+  let forgeAgain = "Let the AI try";
+  if (source !== null) forgeAgain = `${aiReady ? "New lies" : "Try the AI again"} (${draftsLeft} left)`;
+
+  const errors = (
+    <>
+      {fieldError ? <Notice>{fieldError}</Notice> : null}
+      {action.error ? <Notice>{action.error}</Notice> : null}
+    </>
+  );
 
   return (
     <div className="mx-auto max-w-2xl">
@@ -204,23 +222,14 @@ export function Writing({ ctx }: { ctx: GameCtx }) {
                         key={opener}
                         type="button"
                         className="min-h-9 rounded-control border-2 border-line bg-surface-2 px-3 text-sm font-semibold"
-                        onClick={() => {
-                          const target: 0 | 1 = truths[0].trim()
-                            ? truths[1].trim()
-                              ? lastFocused.current
-                              : 1
-                            : 0;
-                          setTruth(target, opener);
-                          document.getElementById(`truth-${target}`)?.focus();
-                        }}
+                        onClick={() => startWith(opener)}
                       >
                         {opener.trim()}…
                       </button>
                     ))}
                   </div>
                 </div>
-                {fieldError ? <Notice>{fieldError}</Notice> : null}
-                {action.error ? <Notice>{action.error}</Notice> : null}
+                {errors}
                 <div className="flex flex-wrap gap-3">
                   <Button
                     variant="accent"
@@ -260,11 +269,7 @@ export function Writing({ ctx }: { ctx: GameCtx }) {
                 {(candidates ?? []).map((text, index) => (
                   <label
                     key={`${index}-${text}`}
-                    className={cx(
-                      "flex cursor-pointer items-start gap-3 rounded-control border-2 p-3.5",
-                      "has-focus-visible:outline-3 has-focus-visible:outline-offset-2 has-focus-visible:outline-(--focus)",
-                      pick === index ? "border-ai bg-ai-bg" : "border-line bg-surface",
-                    )}
+                    className={cx(OPTION, pick === index ? "border-ai bg-ai-bg" : "border-line bg-surface")}
                   >
                     <input
                       type="radio"
@@ -292,11 +297,7 @@ export function Writing({ ctx }: { ctx: GameCtx }) {
 
                 {mayWriteOwn ? (
                   <label
-                    className={cx(
-                      "flex cursor-pointer items-start gap-3 rounded-control border-2 p-3.5",
-                      "has-focus-visible:outline-3 has-focus-visible:outline-offset-2 has-focus-visible:outline-(--focus)",
-                      pick === "own" ? "border-primary bg-surface-2" : "border-line bg-surface",
-                    )}
+                    className={cx(OPTION, pick === "own" ? "border-primary bg-surface-2" : "border-line bg-surface")}
                   >
                     <input
                       type="radio"
@@ -333,8 +334,7 @@ export function Writing({ ctx }: { ctx: GameCtx }) {
                 ) : null}
               </fieldset>
 
-              {fieldError ? <Notice>{fieldError}</Notice> : null}
-              {action.error ? <Notice>{action.error}</Notice> : null}
+              {errors}
 
               <div className="flex flex-wrap items-center gap-3">
                 <Button
@@ -347,24 +347,14 @@ export function Writing({ ctx }: { ctx: GameCtx }) {
                 >
                   Lock in my card
                 </Button>
-                {source !== null && draftsLeft > 0 ? (
+                {draftsLeft > 0 ? (
                   <Button
                     variant="quiet"
-                    icon="refresh"
+                    icon={source === null ? "sparkle" : "refresh"}
                     busy={action.busy === "forge"}
                     onClick={forge}
                   >
-                    {aiReady ? "New lies" : "Try the AI again"} ({draftsLeft} left)
-                  </Button>
-                ) : null}
-                {source === null && draftsLeft > 0 ? (
-                  <Button
-                    variant="quiet"
-                    icon="sparkle"
-                    busy={action.busy === "forge"}
-                    onClick={forge}
-                  >
-                    Let the AI try
+                    {forgeAgain}
                   </Button>
                 ) : null}
               </div>

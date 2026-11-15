@@ -7,10 +7,6 @@ import { cx } from "@/components/ui";
 import type { Player, PublicRoom } from "@/lib/types";
 import { playersInOrder, signed } from "./shared";
 
-/**
- * The strip of water along the bottom of the game: every player as a penguin
- * on an ice floe, with their score and what they are doing right now.
- */
 export function PlayerSea({
   room,
   meId,
@@ -20,15 +16,10 @@ export function PlayerSea({
   room: PublicRoom;
   meId: string;
   now: number;
-  /** Given to the host in the lobby: removes another player. */
   onKick?: (playerId: string) => void;
 }) {
   const players = playersInOrder(room);
   return (
-    // Pinned to the bottom of the window on screens tall enough to spare the
-    // room; on short ones it sits at the end of the page instead. The strip of
-    // sky above the water is solid, so the page scrolls underneath it and the
-    // penguins never sit on top of a card.
     <div className="bottom-0 z-10 mt-6 [@media(min-height:720px)]:sticky">
       <div
         className="h-5 bg-linear-to-b from-transparent to-sky"

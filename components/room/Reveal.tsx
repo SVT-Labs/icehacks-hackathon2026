@@ -7,7 +7,36 @@ import type { Choice, Player } from "@/lib/types";
 import { Countdown } from "./Countdown";
 import { LETTERS, signed, useAction, type GameCtx } from "./shared";
 
-/** The answer to the card that was just guessed. */
+type Verdict = { tone: "good" | "bad" | "quiet"; headline: string; detail: string };
+
+function authorVerdict(delta: number, fooled: number, guessers: number, lieSource: "ai" | "own"): Verdict {
+  const headline = fooled === 0 ? "Nobody fell for it" : `You fooled ${fooled} of ${guessers}`;
+  if (delta < 0) {
+    return {
+      tone: "bad",
+      headline,
+      detail: "Too many players spotted your lie, so it cost you points and cracked your ice.",
+    };
+  }
+  const tone = delta > 0 ? "good" : "quiet";
+  if (fooled === 0) return { tone, headline, detail: "Everyone who answered spotted the lie." };
+  if (lieSource === "ai") return { tone, headline, detail: "The AI lie earned you the bonus." };
+  return { tone, headline, detail: "Your own lie did the job." };
+}
+
+function guesserVerdict(delta: number | undefined, pick: Choice | undefined, lieIndex: Choice): Verdict {
+  if (delta === undefined) {
+    return { tone: "quiet", headline: "You sat this one out", detail: "You are in from the next card." };
+  }
+  if (pick === undefined) {
+    return { tone: "bad", headline: "Out of time", detail: "No guess counts as a wrong one. Your ice cracked." };
+  }
+  if (pick === lieIndex) {
+    return { tone: "good", headline: "You spotted the lie", detail: "The other two are true." };
+  }
+  return { tone: "bad", headline: "Fooled! That one is true", detail: "Your ice cracked." };
+}
+
 export function Reveal({ ctx }: { ctx: GameCtx }) {
   const { api, code, token, room, meId, isHost, now } = ctx;
   const action = useAction();
@@ -34,40 +63,9 @@ export function Reveal({ ctx }: { ctx: GameCtx }) {
     (id) => id !== card.authorId,
   ).length;
 
-  let headline: string;
-  let detail: string;
-  let tone: "good" | "bad" | "quiet";
-  if (isAuthor) {
-    tone = (myDelta ?? 0) > 0 ? "good" : (myDelta ?? 0) < 0 ? "bad" : "quiet";
-    headline =
-      fooled === 0
-        ? "Nobody fell for it"
-        : `You fooled ${fooled} of ${guesserCount}`;
-    detail =
-      (myDelta ?? 0) < 0
-        ? "Too many players spotted your lie, so it cost you points and cracked your ice."
-        : fooled === 0
-          ? "Everyone who answered spotted the lie."
-          : reveal.lieSource === "ai"
-            ? "The AI lie earned you the bonus."
-            : "Your own lie did the job.";
-  } else if (myDelta === undefined) {
-    tone = "quiet";
-    headline = "You sat this one out";
-    detail = "You are in from the next card.";
-  } else if (myPick === undefined) {
-    tone = "bad";
-    headline = "Out of time";
-    detail = "No guess counts as a wrong one. Your ice cracked.";
-  } else if (myPick === reveal.lieIndex) {
-    tone = "good";
-    headline = "You spotted the lie";
-    detail = "The other two are true.";
-  } else {
-    tone = "bad";
-    headline = "Fooled! That one is true";
-    detail = "Your ice cracked.";
-  }
+  const { tone, headline, detail } = isAuthor
+    ? authorVerdict(myDelta ?? 0, fooled, guesserCount, reveal.lieSource)
+    : guesserVerdict(myDelta, myPick, reveal.lieIndex);
 
   return (
     <div className="mx-auto max-w-2xl lg:max-w-none">
@@ -97,8 +95,6 @@ export function Reveal({ ctx }: { ctx: GameCtx }) {
         />
       </div>
 
-      {/* One column on phones (result, answer, story, buttons). On wide
-          screens the answer is on the left and the rest beside it. */}
       <div className="mt-4 flex flex-col gap-4 lg:grid lg:grid-cols-[1.35fr_1fr] lg:items-start">
         <ol className="order-2 space-y-3 lg:order-none">
           {card.statements.map((text, index) => {

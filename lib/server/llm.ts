@@ -1,9 +1,5 @@
-// The one AI call: believable lies for a player's two truths, a safety
-// verdict on the truths, and one conversation starter per truth.
-//
-// The result is always usable. Any problem with the AI (no key, daily cap,
-// timeout, rate limit, bad output twice) comes back as "unavailable" so the
-// player writes their own lie instead.
+// Any problem with the AI (no key, daily cap, timeout, bad output twice) comes
+// back as "unavailable", and the player writes their own lie.
 
 import Anthropic from "@anthropic-ai/sdk";
 import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
@@ -18,7 +14,6 @@ export type LieDraft =
   | { verdict: "unsafe" }
   | { verdict: "unavailable"; reason: string };
 
-/** What we ask the model for. Lengths are checked by us, not by the schema. */
 export const LlmOutputSchema = z.object({
   verdict: z.enum(["ok", "unsafe"]),
   lies: z.array(z.string()),
@@ -56,7 +51,6 @@ type ParseFn = (
 ) => Promise<{ stop_reason: string | null; parsed_output: LlmOutput | null }>;
 
 export type LlmDeps = {
-  /** The SDK's messages.parse; replaced in tests. */
   parse?: ParseFn;
   now?: () => number;
   rng?: () => number;
@@ -79,12 +73,10 @@ const DEMO_LIES = [
 let client: Anthropic | null = null;
 
 function defaultParse(apiKey: string): ParseFn {
-  // No SDK-level retries: our own single retry already fills the time budget.
   client ??= new Anthropic({ apiKey, maxRetries: 0, timeout: TOTAL_BUDGET_MS });
   return (params, options) => client!.messages.parse(params, options);
 }
 
-/** Checks the model's answer. Returns the clean result or a list of problems. */
 export function checkOutput(
   out: LlmOutput,
   truths: readonly [string, string],
@@ -109,7 +101,6 @@ export function checkOutput(
       lies.push(lie);
     }
   }
-  // Extra lies are dropped; bad ones too, as long as at least three remain.
   const kept = lies.slice(0, wanted);
   const tooFew = kept.length < MIN_LIES;
   if (tooFew) problems.unshift(`Only ${kept.length} usable lies; ${wanted} are needed.`);
@@ -121,7 +112,6 @@ export function checkOutput(
   return { ok: true, lies: kept, starters: [starters[0], starters[1]] };
 }
 
-/** Areas a lie can be about. A few are suggested per request, for variety. */
 const TOPICS = [
   "food and cooking",
   "school or work",
@@ -167,7 +157,6 @@ function userMessage(
   return `Write ${wanted} lies.${steer}\n\n<truths>\n1. ${truths[0]}\n2. ${truths[1]}\n</truths>${fix}`;
 }
 
-/** Asks the AI for lies. Never throws. */
 export async function draftLies(
   truths: readonly [string, string],
   wanted: number,
@@ -200,7 +189,6 @@ export async function draftLies(
   for (let attempt = 0; attempt < 2; attempt++) {
     const remaining = deadline - now();
     if (remaining < 1000) return { verdict: "unavailable", reason: "timeout" };
-    // Every call counts toward the daily cap, the retry included.
     try {
       if ((await countLlmCall(now())) > cap) return { verdict: "unavailable", reason: "daily_cap" };
     } catch (error) {
@@ -229,7 +217,7 @@ export async function draftLies(
       if (checked.ok) return { verdict: "ok", lies: checked.lies, starters: checked.starters };
       problems = checked.problems;
     } catch (error) {
-      // Log only the kind of failure: never the players' text.
+      // Log the kind of failure only. Players' text must not reach the logs.
       const status = error instanceof Anthropic.APIError ? error.status : undefined;
       console.error("[llm] call failed", status ?? (error instanceof Error ? error.name : "error"));
       return { verdict: "unavailable", reason: "error" };

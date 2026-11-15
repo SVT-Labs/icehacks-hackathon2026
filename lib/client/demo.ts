@@ -1,10 +1,3 @@
-// The demo driver: the whole game runs in this browser with the same engine
-// the server uses. Rooms are kept in localStorage and announced to other tabs,
-// so two tabs on one computer can play together without any backend.
-//
-// The "AI" here is a fixed list of believable lies. The real AI lives on the
-// server and is only used by the live driver.
-
 import { LIMITS, ROOM_CODE_ALPHABET } from "@/lib/constants";
 import {
   ERROR_STATUS,
@@ -55,8 +48,6 @@ function save(code: string, stored: Stored) {
 function publicOf(code: string): PublicRoom | null {
   const stored = load(code);
   if (!stored) return null;
-  // Parse exactly as the live driver does, so both drivers hand the screens
-  // the same shape.
   const parsed = PublicRoomSchema.safeParse(stored.state.pub);
   return parsed.success ? parsed.data : null;
 }
@@ -91,7 +82,6 @@ function toFailure(e: Engine, error: unknown): unknown {
   return error;
 }
 
-/** Loads a room, checks the token, applies one engine call and saves. */
 async function mutate(
   code: string,
   token: string,
@@ -198,7 +188,6 @@ export const demoApi: GameApi = {
   },
 
   async draft(code, token, truths): Promise<DraftResponse> {
-    // Check the limit first, then pretend to think, as the server would.
     await mutate(code, token, (e, s, playerId) => {
       e.draftsLeft(s, playerId);
       return s;
@@ -208,9 +197,7 @@ export const demoApi: GameApi = {
     let aiOff = false;
     try {
       aiOff = window.localStorage.getItem("thinice:demo:ai") === "off";
-    } catch {
-      // ignore
-    }
+    } catch {}
 
     let response: DraftResponse = { candidates: [], source: "unavailable", draftsLeft: 0 };
     await mutate(code, token, (e, s, playerId) => {
@@ -291,7 +278,6 @@ export const demoApi: GameApi = {
     let set = listeners.get(code);
     if (!set) listeners.set(code, (set = new Set()));
     set.add(onRoom);
-    // Storage events cover browsers without BroadcastChannel.
     const onStorage = (event: StorageEvent) => {
       if (event.key === key(code)) onRoom(publicOf(code));
     };

@@ -57,7 +57,6 @@ describe("draftLies", () => {
     expect(params.output_config.effort).toBe("low");
     expect(options.maxRetries).toBe(0);
     expect(options.timeout).toBeLessThanOrEqual(12_000);
-    // Truths sit inside delimiters; no nickname is ever sent.
     const content = params.messages[0].content as string;
     expect(content).toContain(`<truths>\n1. ${TRUTHS[0]}\n2. ${TRUTHS[1]}\n</truths>`);
   });

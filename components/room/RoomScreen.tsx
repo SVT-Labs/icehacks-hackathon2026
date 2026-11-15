@@ -54,7 +54,6 @@ export function RoomScreen({ code }: { code: string }) {
     return () => window.clearTimeout(timer);
   }, [api, code, token, inRoom, endsAt, seq]);
 
-  // Sounds for what just happened to this player.
   const lastSeq = useRef<number | null>(null);
   useEffect(() => {
     if (!room || !inRoom) return;
@@ -75,7 +74,6 @@ export function RoomScreen({ code }: { code: string }) {
     }
   }, [room, inRoom, meId]);
 
-  // A soft pop when someone walks into the lobby.
   const headcount = room ? Object.keys(room.players).length : 0;
   const lastCount = useRef(0);
   useEffect(() => {
@@ -85,7 +83,6 @@ export function RoomScreen({ code }: { code: string }) {
     lastCount.current = headcount;
   }, [headcount, room?.phase]);
 
-  // Ticking for the last five seconds of a guess this player still owes.
   const secondsLeft = endsAt === null ? null : Math.ceil((endsAt - now) / 1000);
   const owesGuess =
     room?.phase === "guessing" &&
@@ -154,9 +151,7 @@ export function RoomScreen({ code }: { code: string }) {
   async function leave() {
     try {
       await api?.leave(code, token);
-    } catch {
-      // Leaving is best effort; the player goes home either way.
-    }
+    } catch {}
     setIdentity(null);
     router.push("/");
   }
@@ -240,7 +235,6 @@ function Centered({
   );
 }
 
-/** Asks once more before leaving, without a browser pop-up. */
 function LeaveButton({ onLeave }: { onLeave: () => void }) {
   const [asking, setAsking] = useState(false);
 

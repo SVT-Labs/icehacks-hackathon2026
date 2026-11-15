@@ -28,7 +28,6 @@ const TRUTHS: Record<number, [string, string]> = {
   1: ["I learned to juggle during a power cut.", "My first job was washing dishes at a zoo."],
 };
 
-/** The draft, card, guess and me details of one player must stay theirs. */
 async function checkMe(code: string, seats: Seat[]) {
   const views: MeResponse[] = [];
   for (const seat of seats) {
@@ -37,7 +36,6 @@ async function checkMe(code: string, seats: Seat[]) {
     expect(me.body.playerId).toBe(seat.playerId);
     views.push(me.body as unknown as MeResponse);
   }
-  // Each player's own truths are the only truths in their view.
   views.forEach((view, i) => {
     const others = seats.flatMap((_, j) => (j === i ? [] : (TRUTHS[j] ?? [])));
     for (const truth of others) expect(JSON.stringify(view)).not.toContain(truth);
@@ -45,7 +43,6 @@ async function checkMe(code: string, seats: Seat[]) {
   return views;
 }
 
-/** Plays from the lobby to game over using nothing but API calls and ticks. */
 async function playToEnd(code: string, seats: Seat[]) {
   for (let step = 0; step < 400; step++) {
     const room = publicRoom(code);
@@ -59,7 +56,6 @@ async function playToEnd(code: string, seats: Seat[]) {
         expect(draft.status).toBe(200);
         expect(draft.body.source).toBe("ai");
         expect((draft.body.candidates as string[]).length).toBe(room.settings.lieOptions);
-        // Alternate between an AI lie and an own lie.
         const lie = i % 2 === 0 ? { kind: "ai", index: 1 } : { kind: "own", text: "I have a twin brother in Peru." };
         const card = await call("card", code, { token: seat.token, body: { truths, lie } });
         expect(card.status).toBe(200);
@@ -78,7 +74,6 @@ async function playToEnd(code: string, seats: Seat[]) {
         expect(guess.status).toBe(200);
         guessed = true;
         const views = await checkMe(code, seats);
-        // Another player's guess never shows up in your view.
         const after = publicRoom(code);
         views.forEach((view, i) => {
           if (i === seats.indexOf(seat)) return;
@@ -90,9 +85,7 @@ async function playToEnd(code: string, seats: Seat[]) {
       if (guessed) continue;
     }
 
-    // Nothing for the humans to do: let the clock run out and tick.
     if (room.phaseEndsAt !== null) vi.setSystemTime(room.phaseEndsAt + 1);
-    // Every seat ticks, as every browser would; only one moves the game.
     for (const seat of seats) {
       const tick = await call("tick", code, { token: seat.token, body: { seq: room.seq } });
       expect(tick.status).toBe(200);
@@ -114,11 +107,9 @@ describe("whole games over the API", () => {
     const end = await playToEnd(host.code, [host]);
     expect(end.result).not.toBeNull();
     expect(end.round).toBeGreaterThanOrEqual(1);
-    // The leak check ran on every step, including reveals where the index is public.
     expect(seenBodies.length).toBeGreaterThan(10);
     expect(revealsSeen.length).toBeGreaterThanOrEqual(3);
 
-    // Play again goes back to the lobby with the same human.
     const again = await call("host", host.code, { token: host.token, body: { action: "playAgain" } });
     expect(again.status).toBe(200);
     expect(publicRoom(host.code).phase).toBe("lobby");
@@ -148,7 +139,6 @@ describe("whole games over the API", () => {
     const guest = await join(host.code, "Bea");
     expect((await call("leave", host.code, { token: guest.token })).status).toBe(200);
     expect((await call("me", host.code, { token: guest.token })).status).toBe(403);
-    // The host can kick, and the kicked player's token stops working.
     const third = await join(host.code, "Cid");
     const kick = await call("host", host.code, {
       token: host.token,

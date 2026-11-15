@@ -1,18 +1,11 @@
-// Who this browser is. There are no accounts: a player is a nickname plus an
-// id and a secret token the server hands out when they create or join a room.
-// Both are kept in localStorage so a refresh puts the player back in the game.
-
 import { AVATARS } from "@/lib/constants";
 import type { Avatar } from "@/lib/types";
 
 export type Identity = { playerId: string; token: string };
 export type Profile = { name: string; avatar: Avatar };
 
-/**
- * Testing aid: opening a room as /r/CODE?seat=2 gives that tab its own
- * identity, so one browser can hold several players at once. Without it, every
- * tab of a browser is the same player, which is what real players want.
- */
+// Testing aid: /r/CODE?seat=2 gives the tab its own identity, so one browser
+// can hold several players.
 function seat(): string {
   try {
     const value = new URLSearchParams(window.location.search).get("seat") ?? "";
@@ -31,7 +24,6 @@ function read<T>(key: string): T | null {
     const raw = window.localStorage.getItem(key);
     return raw ? (JSON.parse(raw) as T) : null;
   } catch {
-    // Private browsing or blocked storage: behave as if nothing was saved.
     return null;
   }
 }
@@ -39,9 +31,7 @@ function read<T>(key: string): T | null {
 function write(key: string, value: unknown) {
   try {
     window.localStorage.setItem(key, JSON.stringify(value));
-  } catch {
-    // Nothing to do: the player simply has to rejoin after a refresh.
-  }
+  } catch {}
 }
 
 export function loadIdentity(code: string): Identity | null {
@@ -56,9 +46,7 @@ export function saveIdentity(code: string, identity: Identity) {
 export function clearIdentity(code: string) {
   try {
     window.localStorage.removeItem(idKey(code));
-  } catch {
-    // ignore
-  }
+  } catch {}
 }
 
 export function loadProfile(): Profile | null {
@@ -71,11 +59,6 @@ export function saveProfile(profile: Profile) {
   write(profileKey(), profile);
 }
 
-/**
- * The profile a name form starts with: the saved one, or an empty name and a
- * random penguin. Before hydration it is a fixed value, so the server and the
- * browser render the same thing.
- */
 export function initialProfile(hydrated: boolean): Profile {
   if (!hydrated) return { name: "", avatar: "navy" };
   return loadProfile() ?? { name: "", avatar: randomAvatar() };

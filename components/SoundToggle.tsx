@@ -5,7 +5,6 @@ import { isMuted, onMuteChange, setMuted, sfx } from "@/lib/client/sfx";
 import { Icon } from "./Icon";
 
 export function SoundToggle() {
-  // The server cannot know the saved choice, so it renders "sound on".
   const muted = useSyncExternalStore(onMuteChange, isMuted, () => false);
 
   return (

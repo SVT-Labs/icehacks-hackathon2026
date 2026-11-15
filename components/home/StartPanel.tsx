@@ -19,16 +19,11 @@ const cleanCode = (value: string) =>
     .join("")
     .slice(0, LIMITS.ROOM_CODE_LENGTH);
 
-/** Pulls a room code out of a typed code or a pasted invite link. */
 function codeFromInput(value: string): string {
   const match = value.match(/\/r\/([A-Za-z0-9]+)/);
   return cleanCode(match ? match[1] : value);
 }
 
-/**
- * The form remounts once the page is live in the browser, so it can start
- * from the nickname and penguin saved last time.
- */
 export function StartPanel() {
   const hydrated = useHydrated();
   return <StartForm key={hydrated ? "browser" : "server"} hydrated={hydrated} />;

@@ -10,6 +10,12 @@ import { Button, Notice, Panel, cx } from "@/components/ui";
 import type { Learned, Player } from "@/lib/types";
 import { byScore, useAction, type GameCtx } from "./shared";
 
+const PODIUM = [
+  { place: 2, order: "order-1 translate-y-3" },
+  { place: 1, order: "order-2" },
+  { place: 3, order: "order-3 translate-y-3" },
+];
+
 function joinNames(names: string[]): string {
   if (names.length <= 1) return names[0] ?? "Nobody";
   return `${names.slice(0, -1).join(", ")} and ${names[names.length - 1]}`;
@@ -27,7 +33,6 @@ export function GameOver({ ctx }: { ctx: GameCtx }) {
   const iWon = winners.some((p) => p.id === meId);
   const podium = ranked.slice(0, 3);
 
-  // Group the truths by who wrote them, people before bots.
   const groups = new Map<string, { name: string; isBot: boolean; truths: string[] }>();
   for (const item of result?.learned ?? ([] as Learned[])) {
     const group = groups.get(item.playerId) ?? {
@@ -69,29 +74,29 @@ export function GameOver({ ctx }: { ctx: GameCtx }) {
           style={{ marginTop: -70 }}
           aria-label="Top three"
         >
-          {[podium[1], podium[0], podium[2]].map((player, slot) =>
-            player ? (
-              <li
-                key={player.id}
-                className={cx("flex flex-col items-center", slot === 1 ? "order-2" : slot === 0 ? "order-1 translate-y-3" : "order-3 translate-y-3")}
-              >
+          {PODIUM.map(({ place, order }) => {
+            const player = podium[place - 1];
+            if (!player) return null;
+            const first = place === 1;
+            return (
+              <li key={player.id} className={cx("flex flex-col items-center", order)}>
                 <PenguinOnIce
                   avatar={player.avatar}
-                  mood={slot === 1 ? "happy" : "idle"}
-                  size={slot === 1 ? 128 : 96}
+                  mood={first ? "happy" : "idle"}
+                  size={first ? 128 : 96}
                 />
                 <span
                   className={cx(
                     "mt-1 truncate text-center font-display text-lg font-bold text-white",
-                    slot === 1 ? "max-w-44" : "max-w-28",
+                    first ? "max-w-44" : "max-w-28",
                   )}
                 >
-                  {slot === 1 ? "1." : slot === 0 ? "2." : "3."} {player.name}
+                  {place}. {player.name}
                 </span>
                 <span className="tabular font-semibold text-white/85">{player.score}</span>
               </li>
-            ) : null,
-          )}
+            );
+          })}
         </ol>
       </Sea>
 

@@ -1,20 +1,15 @@
-// Bot characters. They fill the room when someone plays alone, so one person
-// can see the whole game. Bots never call the AI: their cards are written here.
-//
-// This file holds the answers (which statement is the lie), so it must only be
-// imported by the game engine, never by a component.
+// This file holds the answers to the bot cards. Only the game engine may import
+// it: a component that did would ship the answers to the browser.
 
 import type { Avatar } from "../types";
 
 export type BotCard = {
   truths: [string, string];
   lie: string;
-  /** Shown after the reveal, built from one of the truths. */
   starter: string;
 };
 
 export type BotCharacter = {
-  /** Must start with "bot_" and never change. */
   id: string;
   name: string;
   avatar: Avatar;
@@ -178,17 +173,4 @@ export const BOTS: BotCharacter[] = [
       },
     ],
   },
-  // TEAM: add yourselves here with real truths, for example:
-  // {
-  //   id: "bot_tuna",
-  //   name: "Tuna",
-  //   avatar: "coral",
-  //   cards: [
-  //     {
-  //       truths: ["<something true about you>", "<another true thing>"],
-  //       lie: "<a believable lie>",
-  //       starter: "Ask Tuna about <one of the truths>.",
-  //     },
-  //   ],
-  // },
 ];

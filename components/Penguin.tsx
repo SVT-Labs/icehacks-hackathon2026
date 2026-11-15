@@ -10,11 +10,6 @@ const INK = "#0b2545";
 const BEAK = "#ff8a3d";
 const BEAK_SHADE = "#d9661b";
 
-/**
- * The mascot. Drawn as inline SVG so it needs no image files, scales to any
- * size and can change expression. It is decorative: the player's name is
- * always written next to it, so the SVG is hidden from screen readers.
- */
 export function Penguin({
   avatar,
   mood = "idle",
@@ -35,11 +30,9 @@ export function Penguin({
       focusable="false"
     >
       <g className={mood === "nervous" ? "animate-shiver" : undefined}>
-        {/* feet */}
         <ellipse cx="37" cy="105" rx="12" ry="5.5" fill={BEAK} />
         <ellipse cx="63" cy="105" rx="12" ry="5.5" fill={BEAK} />
 
-        {/* wings, hinged at the shoulder */}
         <motion.ellipse
           cx="15"
           cy="64"
@@ -61,7 +54,6 @@ export function Penguin({
           transition={{ type: "spring", stiffness: 260, damping: 16 }}
         />
 
-        {/* body and belly */}
         <path
           d="M50 6 C74 6 86 30 86 62 C86 90 72 104 50 104 C28 104 14 90 14 62 C14 30 26 6 50 6 Z"
           fill={body}
@@ -73,13 +65,11 @@ export function Penguin({
         <circle cx="38" cy="35" r="13.5" fill="#ffffff" />
         <circle cx="62" cy="35" r="13.5" fill="#ffffff" />
 
-        {/* cheeks */}
         <circle cx="29" cy="44" r="4" fill="#ff9aa8" opacity="0.55" />
         <circle cx="71" cy="44" r="4" fill="#ff9aa8" opacity="0.55" />
 
         <Eyes mood={mood} />
 
-        {/* beak */}
         <path d="M42 43 Q50 38 58 43 Q50 55 42 43 Z" fill={BEAK} />
         {mood === "happy" || mood === "nervous" ? (
           <path d="M45 45.5 Q50 44 55 45.5 Q50 52 45 45.5 Z" fill={BEAK_SHADE} />

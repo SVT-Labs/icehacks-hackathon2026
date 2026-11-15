@@ -33,11 +33,9 @@ function fakeDb(server: unknown, cache: unknown) {
 
 describe("firebase driver transactions", () => {
   it("decides on server data when the local cache is stale", async () => {
-    // The room moved on to seq 2 on the server; this instance still caches seq 1.
     const { db, state } = fakeDb({ seq: 2 }, { seq: 1 });
     const result = await firebaseDriver(db).transact("ABCDE", (raw) => {
       const room = raw as { seq: number };
-      // "Nothing to do" on the stale copy, a real change on the fresh one.
       return room.seq === 2 ? ({ seq: 3 } as never) : undefined;
     });
     expect(result).not.toBeNull();

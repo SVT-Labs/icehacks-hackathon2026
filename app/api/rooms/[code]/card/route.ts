@@ -13,7 +13,6 @@ export async function POST(request: Request, { params }: { params: Promise<{ cod
     const token = tokenOf(request);
     const body = await readBody(request, CardBodySchema);
     const truths = moderateTruths(body.truths);
-    // An own lie never reaches the AI, so it is checked here.
     const lie: LieChoice =
       body.lie.kind === "own" ? { kind: "own", text: moderateOwnLie(body.lie.text, truths) } : body.lie;
     await playerAction(code, token, (s, playerId) =>

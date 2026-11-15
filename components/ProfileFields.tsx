@@ -6,7 +6,6 @@ import type { Avatar } from "@/lib/types";
 import { Penguin } from "./Penguin";
 import { TextField, cx } from "./ui";
 
-/** Nickname and penguin colour, shared by the home page and the join screen. */
 export function ProfileFields({
   idPrefix,
   name,

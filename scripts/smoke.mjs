@@ -1,12 +1,3 @@
-// Plays one solo game with bots over real HTTP against a running server and
-// exits non-zero on any failure.
-//
-//   npm run dev            (in another terminal)
-//   npm run smoke          (or: BASE_URL=https://your-site.netlify.app npm run smoke)
-//
-// It reads the room from GET /api/rooms/{code} (the public half only) and uses
-// the host's "skip" to end timed phases, so a game takes a few seconds.
-
 const BASE = (process.env.BASE_URL ?? "http://localhost:3000").replace(/\/$/, "");
 const DEADLINE = Date.now() + 120_000;
 
@@ -79,7 +70,6 @@ for (;;) {
     continue;
   }
 
-  // Exercise tick (a no-op while the timer runs), then end the phase now.
   await api("POST", `/${code}/tick`, { token, body: { seq: room.seq } });
   await api("POST", `/${code}/host`, { token, body: { action: "skip" }, ok: [200, 409] });
 }

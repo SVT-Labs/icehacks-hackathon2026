@@ -1,9 +1,3 @@
-// The live driver: HTTP calls to /api/rooms for every action, and a read-only
-// Firebase Realtime Database subscription for the room's public state.
-
-// The two Firebase parts this app uses, instead of the whole `firebase`
-// package: the rest (Firestore, Auth, Storage ...) would only add code and
-// dependencies that are never run.
 import { getApp, getApps, initializeApp, type FirebaseApp } from "@firebase/app";
 import { getDatabase, onValue, ref, type Database } from "@firebase/database";
 import {
@@ -16,10 +10,9 @@ import { ApiFailure, type GameApi } from "./api";
 
 let database: Database | null = null;
 
-// How far this device's clock is from the server's. Phase end times are
-// stamped by the game server, so its clock is the one that counts: every API
-// answer carries it. Until the first answer arrives, Firebase's clock stands
-// in, which is the same to within a moment on a hosted site.
+// Phase end times are stamped by the game server, so countdowns follow its
+// clock. Every API answer carries it, and Firebase's clock stands in until the
+// first answer arrives.
 let firebaseOffset = 0;
 let serverOffset: number | null = null;
 let bestRoundTrip = Infinity;
@@ -29,14 +22,10 @@ function noteServerTime(header: string | null, sentAt: number, receivedAt: numbe
   const serverTime = Number(header);
   if (!header || !Number.isFinite(serverTime)) return;
   const roundTrip = receivedAt - sentAt;
-  // A quick answer gives the best estimate. Keep the quickest one seen, but
-  // refresh it now and then in case the device clock was changed.
   const stale = receivedAt - offsetTakenAt > 60_000;
   if (serverOffset !== null && roundTrip > bestRoundTrip && !stale) return;
   bestRoundTrip = stale ? roundTrip : Math.min(bestRoundTrip, roundTrip);
   offsetTakenAt = receivedAt;
-  // The stamp is written just before the answer is sent, so allow for the
-  // trip back: at most half the round trip, and never more than 150 ms.
   serverOffset = serverTime + Math.min(roundTrip / 2, 150) - receivedAt;
 }
 
@@ -50,7 +39,6 @@ function db(): Database {
           projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
         });
     database = getDatabase(app);
-    // Firebase reports how far this device's clock is from the server's.
     onValue(ref(database, ".info/serverTimeOffset"), (snap) => {
       const value: unknown = snap.val();
       if (typeof value === "number") firebaseOffset = value;
@@ -80,28 +68,25 @@ async function call<T>(
   let data: unknown = null;
   try {
     data = await response.json();
-  } catch {
-    // An error page instead of JSON; handled below by status.
-  }
+  } catch {}
 
-  if (!response.ok) {
-    const info = (data ?? {}) as { error?: unknown; code?: unknown };
-    const code: ApiErrorCode = API_ERROR_CODES.includes(info.code as ApiErrorCode)
-      ? (info.code as ApiErrorCode)
-      : response.status === 404
-        ? "not_found"
-        : response.status === 429
-          ? "rate_limited"
-          : "internal";
-    const message =
-      typeof info.error === "string" && info.error
-        ? info.error
-        : response.status === 429
-          ? "Too many requests. Wait a moment and try again."
-          : "The server had a problem. Please try again.";
-    throw new ApiFailure(code, message, response.status);
-  }
+  if (!response.ok) throw failure(response.status, data);
   return data as T;
+}
+
+function failure(status: number, data: unknown): ApiFailure {
+  const info = (data ?? {}) as { error?: unknown; code?: unknown };
+
+  let code: ApiErrorCode = "internal";
+  if (API_ERROR_CODES.includes(info.code as ApiErrorCode)) code = info.code as ApiErrorCode;
+  else if (status === 404) code = "not_found";
+  else if (status === 429) code = "rate_limited";
+
+  let message = "The server had a problem. Please try again.";
+  if (typeof info.error === "string" && info.error) message = info.error;
+  else if (status === 429) message = "Too many requests. Wait a moment and try again.";
+
+  return new ApiFailure(code, message, status);
 }
 
 const room = (code: string) => `/${encodeURIComponent(code)}`;

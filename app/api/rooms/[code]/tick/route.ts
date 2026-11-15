@@ -7,9 +7,6 @@ import { readRoom } from "@/lib/server/store";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-// Every browser calls this when a countdown ends, then every 2.5 s until the
-// room changes, so most calls are no-ops. A plain read answers those without
-// opening a transaction.
 export async function POST(request: Request, { params }: { params: Promise<{ code: string }> }) {
   return handle(async () => {
     const code = await roomCode(params);

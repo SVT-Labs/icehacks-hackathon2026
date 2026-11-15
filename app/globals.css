@@ -1,11 +1,5 @@
 @import "tailwindcss";
 
-/* ------------------------------------------------------------------
-   Design tokens. Arctic day by default, arctic night for dark mode.
-   Components use the Tailwind names from the @theme block below
-   (bg-surface, text-ink, border-line ...), never raw hex values.
-   ------------------------------------------------------------------ */
-
 :root {
   --sky: #eaf6ff;
   --sky-deep: #d5ecfb;
@@ -149,9 +143,9 @@
   to { transform: scale(1); opacity: 1; }
 }
 
-/* Tailwind's utilities live in a cascade layer, and plain CSS outside any
-   layer always beats them. Everything below is therefore put in a layer too,
-   so a utility class on an element can still override these defaults. */
+/* Tailwind's utilities live in a cascade layer, and CSS outside any layer
+   always beats them. These rules are layered too, so a utility class can
+   still override them. */
 
 @layer base {
   html {
@@ -176,7 +170,6 @@
     text-wrap: pretty;
   }
 
-  /* One visible focus style everywhere, for keyboard users only. */
   :focus-visible {
     outline: 3px solid var(--focus);
     outline-offset: 2px;
@@ -189,7 +182,6 @@
 }
 
 @layer components {
-  /* A raised "lip" under buttons and cards that presses down on click. */
   .lip {
     box-shadow: 0 4px 0 0 var(--lip, var(--line));
     transition: transform 80ms ease, box-shadow 80ms ease;
@@ -204,7 +196,6 @@
     font-variant-numeric: tabular-nums;
   }
 
-  /* Hide scrollbars on the penguin strip without disabling scrolling. */
   .quiet-scroll {
     scrollbar-width: thin;
     scrollbar-color: var(--foam) transparent;

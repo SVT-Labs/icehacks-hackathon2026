@@ -4,7 +4,6 @@ import { memoryRaw, memorySetIndex, resetMemoryStore } from "@/lib/server/store"
 import * as publicRoute from "@/app/api/rooms/[code]/route";
 import { AUTH_ROUTES, call, create, createRoom, join, publicRoom } from "./helpers";
 
-// The draft route's AI step, controllable per test. Everything else is real.
 const ai = vi.hoisted(() => ({ next: null as null | { verdict: string; lies?: string[]; starters?: string[] } }));
 vi.mock("@/lib/server/llm", async (original) => {
   const real = await original<typeof import("@/lib/server/llm")>();
@@ -206,7 +205,7 @@ describe("draft", () => {
 
   it("answers unsafe for truths the block list catches, before any AI call", async () => {
     const { host, code } = await writingRoom();
-    ai.next = { verdict: "ok", lies: [], starters: [] }; // would fail if reached
+    ai.next = { verdict: "ok", lies: [], starters: [] };
     const draft = await call("draft", code, { token: host.token, body: { truths: ["My number is +31 6 1234 5678 ok.", TRUTHS[1]] } });
     expect(draft.status).toBe(422);
   });
@@ -217,11 +216,9 @@ describe("draft", () => {
     const draft = await call("draft", code, { token: host.token, body: { truths: TRUTHS } });
     expect(draft.status).toBe(200);
     expect(draft.body).toEqual({ candidates: [], source: "unavailable", draftsLeft: 2 });
-    // The player can still lock in a card with their own lie.
     const card = await call("card", code, { token: host.token, body: { truths: TRUTHS, lie: { kind: "own", text: "I have a twin brother in Peru." } } });
     expect(card.status).toBe(200);
     expect((await call("draft", code, { token: host.token, body: { truths: TRUTHS } })).body.code).toBe("wrong_phase");
-    // Another player's /me never shows this player's draft or card.
     const other = await call("me", code, { token: guest.token });
     expect(other.body.draft).toBeNull();
     expect(other.body.card).toBeNull();

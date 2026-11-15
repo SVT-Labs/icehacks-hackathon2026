@@ -1,14 +1,7 @@
-// A deliberately short list of slurs and explicit terms that are rejected in
-// nicknames, truths and own lies. It is a first filter only: the AI judges the
-// truths properly, and the reveal is shown to people in the same room.
-//
-// An entry ending in "*" matches any word that starts with it ("fuck*" also
-// catches "fucking"). Other entries match whole words only, so "ass" does not
-// match "class". Matching runs on lower-case text with common digit and
-// symbol swaps undone (0 -> o, 1 -> i, 3 -> e, 4 -> a, 5 -> s, @ -> a, $ -> s).
+// An entry ending in "*" matches any word that starts with it. Other entries
+// match whole words only, so "ass" does not match "class".
 
 export const BLOCKLIST: readonly string[] = [
-  // Explicit sexual terms
   "fuck*",
   "motherfuck*",
   "cunt*",
@@ -41,7 +34,6 @@ export const BLOCKLIST: readonly string[] = [
   "whore*",
   "slut*",
   "hentai",
-  // Slurs
   "nigger*",
   "nigga*",
   "faggot*",
@@ -56,7 +48,6 @@ export const BLOCKLIST: readonly string[] = [
   "gook*",
   "wetback*",
   "dyke*",
-  // Self-harm and violence aimed at people
   "kys",
   "killyourself",
 ];

@@ -1,9 +1,5 @@
 import { useId, type ReactNode } from "react";
 
-/**
- * A band of water with a drifting wave edge along the top. Penguins on ice
- * floes are placed inside it as children.
- */
 export function Sea({
   children,
   className,

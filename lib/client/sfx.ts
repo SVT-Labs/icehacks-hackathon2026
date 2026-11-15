@@ -1,7 +1,6 @@
-// Sound effects, synthesised with the Web Audio API. There are no audio files:
-// every sound is a few oscillators or a burst of filtered noise. Browsers only
-// allow sound after a click or key press, so the audio context is created the
-// first time a sound is asked for.
+// Every sound is synthesised with the Web Audio API, so there are no audio
+// files. Browsers only allow sound after a click or key press, so the audio
+// context is created the first time a sound is asked for.
 
 const MUTE_KEY = "thinice:muted";
 
@@ -43,9 +42,7 @@ export function setMuted(value: boolean) {
   muted = value;
   try {
     window.localStorage.setItem(MUTE_KEY, value ? "1" : "0");
-  } catch {
-    // ignore
-  }
+  } catch {}
   listeners.forEach((fn) => fn());
 }
 
@@ -117,21 +114,16 @@ function play(fn: (ac: AudioContext) => void) {
   if (!ac) return;
   try {
     fn(ac);
-  } catch {
-    // A sound failing must never break the game.
-  }
+  } catch {}
 }
 
 export const sfx = {
-  /** A new player or a small confirmation. */
   pop: () => play((ac) => tone(ac, { from: 520, to: 820, dur: 0.09, gain: 0.1 })),
-  /** A choice locked in. */
   lock: () =>
     play((ac) => {
       tone(ac, { from: 440, dur: 0.05, type: "triangle", gain: 0.1 });
       tone(ac, { from: 660, at: 0.05, dur: 0.07, type: "triangle", gain: 0.1 });
     }),
-  /** Last seconds of a countdown. */
   tick: () => play((ac) => tone(ac, { from: 1000, dur: 0.035, gain: 0.05 })),
   correct: () =>
     play((ac) => {
@@ -140,14 +132,12 @@ export const sfx = {
     }),
   wrong: () =>
     play((ac) => tone(ac, { from: 200, to: 110, dur: 0.22, type: "sawtooth", gain: 0.07 })),
-  /** Ice cracking: two sharp clicks and a short falling creak. */
   crack: () =>
     play((ac) => {
       noise(ac, { dur: 0.05, type: "highpass", from: 2600, gain: 0.3 });
       noise(ac, { at: 0.07, dur: 0.04, type: "highpass", from: 3400, gain: 0.22 });
       tone(ac, { from: 900, to: 260, at: 0.02, dur: 0.16, type: "triangle", gain: 0.06 });
     }),
-  /** A penguin going in. */
   splash: () =>
     play((ac) => {
       noise(ac, { dur: 0.7, type: "lowpass", from: 2400, to: 320, gain: 0.3 });
@@ -155,7 +145,6 @@ export const sfx = {
       tone(ac, { from: 700, to: 1100, at: 0.3, dur: 0.07, gain: 0.05 });
       tone(ac, { from: 900, to: 1400, at: 0.42, dur: 0.06, gain: 0.04 });
     }),
-  /** End of the game. */
   fanfare: () =>
     play((ac) => {
       [523, 659, 784, 1047].forEach((freq, i) =>

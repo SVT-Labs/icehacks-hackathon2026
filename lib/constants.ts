@@ -1,6 +1,3 @@
-// Limits and fixed values shared by the browser, the game engine and the API.
-// Changing anything here changes the contract between frontend and backend.
-
 export const AVATARS = [
   "navy",
   "teal",
@@ -29,17 +26,11 @@ export const LIMITS = {
   STATEMENT_MIN: 8,
   STATEMENT_MAX: 120,
   ROOM_CODE_LENGTH: 5,
-  /** How many times one player may ask the AI for lies in one round. */
   MAX_DRAFTS_PER_ROUND: 3,
-  /** How long the round-end scoreboard stays up before the next round. */
   ROUND_END_SECONDS: 12,
-  /** Point losses in one round after which the ice breaks at round end. */
   CRACKS_TO_SPLASH: 3,
-  /** A tick this many ms early still counts, to absorb clock differences. */
   TICK_GRACE_MS: 300,
-  /** A host who starts alone gets at least this many bots. */
   SOLO_BOT_MIN: 2,
-  /** Most truths kept for the end-of-game recap. */
   LEARNED_MAX: 40,
 } as const;
 

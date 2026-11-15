@@ -1,14 +1,5 @@
-// Does a statement read like a real sentence, or is it key-mashing?
-//
-// A card of three indistinguishable strings ("aaaaaaaa", "aaaaaaaaa",
-// "aaaaaaaaaa") cannot be reasoned about, so guesses on it are pure luck and
-// its author collects points for "fooling" two players in three. These checks
-// refuse the lazy ways of making such a card. The writing screen uses them for
-// instant feedback and the server uses the same code as the real gate.
-//
-// They are deliberately mild, so that short, casual and non-English statements
-// pass. They cannot stop someone who types real-looking nonsense words; the
-// host can remove that player from the lobby.
+// These checks are deliberately mild, so short, casual and non-English
+// statements pass. They cannot stop real-looking nonsense words.
 
 export const NOT_A_SENTENCE =
   "That does not read like a real sentence. Write it out in a few plain words.";
@@ -22,10 +13,6 @@ const SPACELESS =
 
 const LATIN_VOWEL = /[aeiouyàáâãäåæèéêëìíîïòóôõöøùúûüýÿāēīōūăĕĭŏŭıœ]/i;
 
-/**
- * Returns a message when `text` does not look like a sentence, or null when it
- * is fine. `text` should already be trimmed.
- */
 export function sentenceProblem(text: string): string | null {
   const clean = text.normalize("NFC").replace(/\s+/g, " ").trim();
   const letters = clean.match(/\p{L}/gu) ?? [];
@@ -64,12 +51,6 @@ export function sentenceProblem(text: string): string | null {
 const bare = (text: string) =>
   (text.normalize("NFC").toLowerCase().match(/[\p{L}\p{N}]/gu) ?? []).join("");
 
-/**
- * True when two statements are the same apart from case, spacing and
- * punctuation, or when one is the other with a little added.
- * "I have two brothers" and "I have three brothers" are NOT alike: changing
- * one detail is a perfectly good lie.
- */
 export function tooAlike(a: string, b: string): boolean {
   const x = bare(a);
   const y = bare(b);

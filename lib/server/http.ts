@@ -1,6 +1,3 @@
-// Plumbing shared by every route: JSON responses, errors, bodies, tokens and
-// the per-IP limit on room creation and joining.
-
 import { randomBytes, randomInt, timingSafeEqual } from "node:crypto";
 import type { z } from "zod";
 import { LIMITS, ROOM_CODE_ALPHABET } from "@/lib/constants";
@@ -26,14 +23,11 @@ export function errorResponse(error: unknown): Response {
       error instanceof RateLimited ? { "Retry-After": String(error.retryAfter) } : {};
     return json({ error: error.message, code: error.code }, ERROR_STATUS[error.code], headers);
   }
-  // The real error goes to the server log only. Errors here come from the
-  // store or the runtime, never from players' text.
   console.error("[api] unexpected error", error instanceof Error ? (error.stack ?? error.message) : error);
   const code: ApiErrorCode = "internal";
   return json({ error: "The server had a problem. Please try again.", code }, 500);
 }
 
-/** Runs a route body and turns every failure into the API error shape. */
 export async function handle(fn: () => Promise<Response>): Promise<Response> {
   try {
     return await fn();
@@ -60,7 +54,6 @@ export async function readBody<S extends z.ZodType>(request: Request, schema: S)
   return parsed.data;
 }
 
-/** The room code from the path, upper-cased. Anything malformed is not found. */
 export async function roomCode(params: Promise<{ code: string }>): Promise<string> {
   const { code } = await params;
   const upper = code.toUpperCase();
@@ -77,7 +70,6 @@ export function tokenOf(request: Request): string {
   return token;
 }
 
-/** The id of the player holding this token, or forbidden. */
 export function playerFor(room: StoredRoom, token: string): string {
   const given = Buffer.from(token);
   let found: string | null = null;
@@ -91,7 +83,6 @@ export function playerFor(room: StoredRoom, token: string): string {
   return found;
 }
 
-/** Keeps tokens only for players still in the room. */
 export function liveTokens(room: StoredRoom): Record<string, string> {
   const tokens: Record<string, string> = {};
   for (const [id, token] of Object.entries(room.tokens)) {
@@ -100,8 +91,6 @@ export function liveTokens(room: StoredRoom): Record<string, string> {
   return tokens;
 }
 
-// ---------- Ids ----------
-
 function randomString(alphabet: string, length: number): string {
   let out = "";
   for (let i = 0; i < length; i++) out += alphabet[randomInt(alphabet.length)];
@@ -109,12 +98,8 @@ function randomString(alphabet: string, length: number): string {
 }
 
 export const newRoomCode = () => randomString(ROOM_CODE_ALPHABET, LIMITS.ROOM_CODE_LENGTH);
-/** Safe as a database key and never looks like a number. */
 export const newPlayerId = () => `p_${randomString(ID_ALPHABET, 12)}`;
-/** 192 random bits. */
 export const newToken = () => randomBytes(24).toString("base64url");
-
-// ---------- Per-IP limit ----------
 
 class RateLimited extends GameError {
   retryAfter: number;
@@ -126,8 +111,7 @@ class RateLimited extends GameError {
 
 const WINDOW_MS = 60_000;
 const PER_WINDOW = 20;
-// shortcut: in memory per function instance, so best effort only; upgrade to
-// a database counter if abuse shows up.
+// Counted in memory per function instance, so this limit is best effort only.
 const hits = new Map<string, { count: number; resetAt: number }>();
 
 export function clientIp(request: Request): string {
@@ -152,7 +136,6 @@ export function limitByIp(request: Request, now = Date.now()): void {
   if (entry.count > PER_WINDOW) throw new RateLimited(Math.ceil((entry.resetAt - now) / 1000));
 }
 
-/** Clears the per-IP counts. Tests only. */
 export function resetRateLimits(): void {
   hits.clear();
 }

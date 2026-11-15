@@ -1,6 +1,3 @@
-// Calls the route handlers directly, the way Next would, against the memory
-// store. Every call also runs the leak check.
-
 import { expect } from "vitest";
 import * as rootRoute from "@/app/api/rooms/route";
 import * as cardRoute from "@/app/api/rooms/[code]/card/route";
@@ -35,7 +32,6 @@ export const AUTH_ROUTES = ["leave", "settings", "start", "draft", "card", "gues
 
 export type Result<T = Record<string, unknown>> = { status: number; body: T; headers: Headers };
 
-/** Every response body seen, for the leak test. */
 export const seenBodies: { route: string; body: unknown }[] = [];
 
 function request(method: string, path: string, opts: { token?: string; body?: unknown; raw?: string; ip?: string }) {
@@ -79,16 +75,13 @@ export async function call(
   return finish(route, response, code.toUpperCase());
 }
 
-/** The public room exactly as a browser would read it. */
 export function publicRoom(code: string): PublicRoom {
   const raw = memoryRaw(code) as { public?: unknown } | null;
   return PublicRoomSchema.parse(raw?.public);
 }
 
-/** Reveals the leak check saw with the lie index public, proving it ran. */
 export const revealsSeen: number[] = [];
 
-/** The lie index must never be in the browser-readable half before a reveal. */
 export function checkStoredPublic(code: string): void {
   const raw = memoryRaw(code) as { public?: unknown } | null;
   if (!raw) return;
@@ -96,7 +89,6 @@ export function checkStoredPublic(code: string): void {
   const text = JSON.stringify(raw.public);
   if (room.phase !== "reveal") expect(text).not.toContain("lieIndex");
   else if (text.includes("lieIndex") && !revealsSeen.includes(room.seq)) revealsSeen.push(room.seq);
-  // Nothing from the server-only halves ever appears in the public half.
   expect(text).not.toContain("botPlan");
   expect(text).not.toContain("candidates");
 }

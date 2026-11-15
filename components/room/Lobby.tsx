@@ -40,9 +40,7 @@ export function Lobby({ ctx }: { ctx: GameCtx }) {
         text: "Two truths and an AI lie. Join my lobby:",
         url: link,
       });
-    } catch {
-      // The share sheet was closed; nothing to report.
-    }
+    } catch {}
   }
 
   return (

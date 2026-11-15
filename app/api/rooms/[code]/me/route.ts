@@ -10,7 +10,6 @@ export async function GET(request: Request, { params }: { params: Promise<{ code
     const code = await roomCode(params);
     const token = tokenOf(request);
     const room = await readRoom(code);
-    // meView only ever describes the calling player.
     return json(meView(room.state, playerFor(room, token)));
   });
 }

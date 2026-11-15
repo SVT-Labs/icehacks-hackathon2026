@@ -1,8 +1,3 @@
-// Tests for the game rules in lib/game/engine.ts.
-//
-// Every room handed to the engine is deep-frozen first, so any attempt to
-// change an input throws and fails the test.
-
 import { describe, expect, it } from "vitest";
 import { LIMITS } from "../lib/constants";
 import {
@@ -33,8 +28,6 @@ import {
   type Truths,
 } from "../lib/types";
 
-// ---------- Helpers ----------
-
 const T0 = 1_700_000_000_000;
 const HOST = "p_0";
 
@@ -57,7 +50,6 @@ function deepFreeze<T>(value: T): T {
   return value;
 }
 
-/** Freezes a room before it goes into the engine. */
 const f = (s: RoomState): RoomState => deepFreeze(s);
 
 function expectCode(run: () => unknown, code: ApiErrorCode): void {
@@ -71,7 +63,6 @@ function expectCode(run: () => unknown, code: ApiErrorCode): void {
   expect((thrown as GameError).code).toBe(code);
 }
 
-/** Removes what the database would drop: nulls, empty objects, empty arrays. */
 function strip(value: unknown): unknown {
   if (value === null || value === undefined) return undefined;
   if (Array.isArray(value)) {
@@ -89,7 +80,6 @@ function strip(value: unknown): unknown {
   return value;
 }
 
-/** A room as it comes back after being stored in the database. */
 function viaDatabase(s: RoomState): RoomState {
   return {
     pub: PublicRoomSchema.parse(strip(s.pub)),
@@ -97,7 +87,6 @@ function viaDatabase(s: RoomState): RoomState {
   };
 }
 
-/** Checks that the public half gives nothing away and survives storage. */
 function checkPublic(s: RoomState): void {
   const { pub, priv } = s;
   const json = JSON.stringify(pub);
@@ -181,7 +170,6 @@ function lockAi(s: RoomState, id: string, now: number, rng: Rng): RoomState {
   });
 }
 
-/** Everyone locks a card; the last one starts the first guessing phase at `now`. */
 function allLock(s: RoomState, ids: string[], kind: "ai" | "own", now: number, rng: Rng) {
   for (const id of ids) s = kind === "ai" ? lockAi(s, id, now, rng) : lockOwn(s, id, now, rng);
   return s;
@@ -198,7 +186,6 @@ function skip(s: RoomState, now: number, rng: Rng): RoomState {
   return hostAction(f(s), { playerId: s.pub.hostId, action: { action: "skip" }, now, rng });
 }
 
-/** A lone host plays a whole game against bots by taking every action. */
 function playSolo(seed: number, options: { database?: boolean; patch?: SettingsPatch } = {}) {
   const rng = mulberry32(seed);
   const store = (next: RoomState) => {
@@ -233,8 +220,6 @@ function playSolo(seed: number, options: { database?: boolean; patch?: SettingsP
   }
   return s;
 }
-
-// ---------- Lobby ----------
 
 describe("lobby", () => {
   it("creates a room in the lobby with default settings", () => {
@@ -324,8 +309,6 @@ describe("lobby", () => {
   });
 });
 
-// ---------- Starting ----------
-
 describe("starting a game", () => {
   it("gives a lone host between two and all of the bots", () => {
     const counts = new Set<number>();
@@ -380,8 +363,6 @@ describe("starting a game", () => {
   });
 });
 
-// ---------- Writing ----------
-
 describe("writing", () => {
   it("limits lie requests and trims the options to the host's setting", () => {
     const { ids, ...rest } = started(["Ada", "Ben"]);
@@ -422,7 +403,6 @@ describe("writing", () => {
       () => card(truthsOf(a), { kind: "own", text: truthsOf(a)[0].toUpperCase() }),
       "bad_request",
     );
-    // An AI lie needs a draft made from the same truths.
     expectCode(() => card(truthsOf(a), { kind: "ai", index: 0 }), "bad_request");
     const drafted = setDraft(f(s), {
       playerId: a,
@@ -522,8 +502,6 @@ describe("writing", () => {
     checkPublic(s);
   });
 });
-
-// ---------- Scoring ----------
 
 describe("scoring", () => {
   function firstCard(kind: "ai" | "own", names = ["Ada", "Ben", "Cy"], patch?: SettingsPatch) {
@@ -649,9 +627,7 @@ describe("scoring", () => {
     }
 
     expect(s.pub.phase).toBe("roundEnd");
-    // Dee guessed wrong three times and wrote a lie everyone spotted.
     expect(s.pub.players[unlucky].cracks).toBe(4);
-    // The others were each fooled by nobody but Dee: 2 of 3 spotted it.
     for (const id of ids.slice(0, 3)) expect(s.pub.players[id].cracks).toBe(1);
     expect(s.pub.roundSummary!.splashedIds).toEqual([unlucky]);
     for (const id of ids) {
@@ -674,8 +650,6 @@ describe("scoring", () => {
     expect(s.priv.drafts).toEqual({});
   });
 });
-
-// ---------- Guessing and timers ----------
 
 describe("guessing and timers", () => {
   function atFirstCard() {
@@ -715,12 +689,10 @@ describe("guessing and timers", () => {
     const lobbyRoom = f(lobby());
     expect(tick(lobbyRoom, { seq: 0, now: T0 + 999_999, rng })).toBe(lobbyRoom);
 
-    // Within the grace period the tick counts.
     const onTime = tick(frozen, { seq: s.pub.seq, now: endsAt - LIMITS.TICK_GRACE_MS, rng });
     expect(onTime).not.toBe(frozen);
     expect(onTime.pub.phase).toBe("reveal");
     expect(onTime.pub.seq).toBe(s.pub.seq + 1);
-    // Both humans were silent: no picks at all.
     expect(onTime.pub.reveal!.picks).toEqual({});
     expect(onTime.pub.reveal!.deltas[others[0]]).toBe(-50);
 
@@ -784,7 +756,6 @@ describe("guessing and timers", () => {
         expect(s.pub.phaseEndsAt).toBe(Math.max(...Object.values(card.botGuessAt)) + 600);
         now = s.pub.phaseEndsAt!;
         s = tick(f(s), { seq: s.pub.seq, now, rng });
-        // Every bot answered, so every bot has a pick.
         expect(Object.keys(s.pub.reveal!.picks).sort()).toEqual([...botIds].sort());
       } else {
         for (const at of Object.values(card.botGuessAt)) {
@@ -793,7 +764,6 @@ describe("guessing and timers", () => {
         }
         expect(s.pub.phaseEndsAt).toBe(shownAt + DEFAULT_SETTINGS.guessSeconds * 1000);
         now += 500;
-        // The only human answers, so the reveal does not wait for the bots.
         s = guess(s, HOST, lieOf(s), now, rng);
         expect(s.pub.phase).toBe("reveal");
         expect(Object.keys(s.pub.reveal!.picks)).toHaveLength(botIds.length + 1);
@@ -803,8 +773,6 @@ describe("guessing and timers", () => {
     expect(s.pub.phase).toBe("roundEnd");
   });
 });
-
-// ---------- Joining and leaving mid-game ----------
 
 describe("joining and leaving mid-game", () => {
   it("lets a late joiner guess from the next card, with no loss on the current one", () => {
@@ -854,14 +822,11 @@ describe("joining and leaving mid-game", () => {
     expect(s.pub.card!.authorId).toBe(second);
     expect(s.pub.players[s.pub.hostId].isHost).toBe(true);
     expect(Object.values(s.pub.players).filter((p) => p.isHost)).toHaveLength(1);
-    // Nothing was scored for the dropped card.
     expect(Object.values(s.pub.players).map((p) => p.score)).toEqual([0, 0]);
     checkPublic(s);
 
-    // A player still to come leaves: their card is skipped.
     s = leaveRoom(f(s), { playerId: third, now: T0 + 3000, rng });
     expect(s.pub.order).toEqual([second]);
-    // The author is the only one left, so nobody is left to wait for.
     expect(s.pub.phase).toBe("reveal");
     s = tick(f(s), { seq: s.pub.seq, now: s.pub.phaseEndsAt!, rng });
     expect(s.pub.phase).toBe("roundEnd");
@@ -893,8 +858,6 @@ describe("joining and leaving mid-game", () => {
   });
 });
 
-// ---------- Whole games ----------
-
 describe("whole games", () => {
   it("finishes a solo game on timers alone", () => {
     for (const seed of [1, 2, 3]) {
@@ -912,7 +875,6 @@ describe("whole games", () => {
       expect(s.pub.round).toBeLessThanOrEqual(DEFAULT_SETTINGS.maxRounds);
       expect(s.pub.phaseEndsAt).toBeNull();
       expect(s.pub.result!.winnerIds.length).toBeGreaterThan(0);
-      // The silent host only ever lost points.
       expect(s.pub.players[HOST].score).toBe(0);
     }
   });
@@ -949,7 +911,6 @@ describe("whole games", () => {
   it("keeps working when every step goes through the database", () => {
     for (const seed of [21, 22]) {
       const s = playSolo(seed, { database: true, patch: { maxRounds: 5, targetScore: 5000 } });
-      // Five rounds use each bot's four cards and force a reshuffle.
       expect(s.pub.round).toBe(5);
       expect(s.pub.phase).toBe("gameOver");
     }
@@ -990,8 +951,6 @@ describe("whole games", () => {
     expect(restarted.pub.round).toBe(1);
   });
 });
-
-// ---------- Private view ----------
 
 describe("meView", () => {
   it("shows a player only their own secrets", () => {

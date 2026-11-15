@@ -12,20 +12,14 @@ const nextConfig: NextConfig = {
     },
   },
 
-  // Standard hardening headers on every page and API answer.
   async headers() {
     return [
       {
         source: "/:path*",
         headers: [
-          // Browsers must not guess a file's type.
           { key: "X-Content-Type-Options", value: "nosniff" },
-          // The game may not be shown inside another site's frame.
           { key: "X-Frame-Options", value: "DENY" },
-          // A room link is never passed on to other sites.
           { key: "Referrer-Policy", value: "no-referrer" },
-          // The microphone is for dictation on this site only; the camera,
-          // location and payment features are never used.
           {
             key: "Permissions-Policy",
             value: "microphone=(self), camera=(), geolocation=(), payment=()",

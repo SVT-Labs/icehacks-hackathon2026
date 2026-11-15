@@ -9,7 +9,6 @@ import type { Choice } from "@/lib/types";
 import { Countdown } from "./Countdown";
 import { LETTERS, type GameCtx } from "./shared";
 
-/** One card on screen: everyone except its author picks the fake. */
 export function Guessing({ ctx }: { ctx: GameCtx }) {
   const { api, code, token, room, me, meId, now } = ctx;
   const [local, setLocal] = useState<Choice | null>(null);
@@ -21,7 +20,6 @@ export function Guessing({ ctx }: { ctx: GameCtx }) {
   const author = room.players[card.authorId];
   const self = room.players[meId];
   const isAuthor = card.authorId === meId;
-  // Someone who joined while this card was up watches it and plays the next.
   const joinedLate =
     !isAuthor &&
     self !== undefined &&

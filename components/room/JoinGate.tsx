@@ -11,7 +11,6 @@ import { sfx } from "@/lib/client/sfx";
 import type { Avatar, PublicRoom } from "@/lib/types";
 import { humans } from "./shared";
 
-/** Shown to someone who opened a room link but is not a player in it yet. */
 export function JoinGate({
   api,
   code,
@@ -23,8 +22,6 @@ export function JoinGate({
   room: PublicRoom;
   onJoined: (identity: Identity) => void;
 }) {
-  // This screen only appears once the room has loaded in the browser, so the
-  // saved profile can be read straight away.
   const [seed] = useState(() => initialProfile(true));
   const [name, setName] = useState(seed.name);
   const [avatar, setAvatar] = useState<Avatar>(seed.avatar);

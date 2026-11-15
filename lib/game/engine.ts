@@ -1,13 +1,6 @@
-// The rules of Thin Ice as pure functions.
-//
-// The same code runs in two places: in the browser for the mock driver, and
-// on the server inside a database transaction. So nothing here reads a clock,
-// rolls its own dice or does I/O. Time comes in as `now` (ms) and randomness
-// as `rng`. Every exported function takes a room and returns a new one; the
-// room passed in is never changed.
-//
-// Phases: lobby -> writing -> (guessing -> reveal) per card -> roundEnd ->
-// writing again or gameOver.
+// The rules of the game as pure functions. The same code runs in the browser
+// (demo mode) and on the server, so nothing here reads a clock, rolls dice or
+// does I/O: time comes in as `now` and randomness as `rng`.
 
 import { LIMITS } from "../constants";
 import {
@@ -51,10 +44,7 @@ export class GameError extends Error {
   }
 }
 
-/** Returns a number from 0 (inclusive) to 1 (exclusive), like Math.random. */
 export type Rng = () => number;
-
-// ---------- Small helpers ----------
 
 function fail(code: ApiErrorCode, message: string): never {
   throw new GameError(code, message);
@@ -64,7 +54,7 @@ function clone(s: RoomState): RoomState {
   return structuredClone(s);
 }
 
-/** Own-property lookup, so an id like "constructor" can never match. */
+// Own-property lookup, so an id like "constructor" can never match.
 function get<T>(record: Record<string, T>, key: string): T | undefined {
   return Object.prototype.hasOwnProperty.call(record, key) ? record[key] : undefined;
 }
@@ -90,7 +80,6 @@ function clamp(value: number, min: number, max: number): number {
 const sameText = (a: string, b: string) =>
   a.trim().toLowerCase() === b.trim().toLowerCase();
 
-/** Players in a fixed order (join time, then id), whatever the key order is. */
 function playerList(pub: PublicRoom): Player[] {
   return Object.values(pub.players).sort(
     (a, b) => a.joinedAt - b.joinedAt || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0),
@@ -177,10 +166,6 @@ function fallbackStarter(name: string, truths: readonly [string, string], rng: R
   return `Ask ${name} about this: "${truths[randInt(rng, 0, 1)]}"`;
 }
 
-/**
- * Who guesses on the card being shown: everyone but the author who was in the
- * room when the card came up. Someone who joins mid-card waits for the next.
- */
 function guessersOf(pub: PublicRoom): Player[] {
   const card = pub.card;
   if (!card) return [];
@@ -197,8 +182,6 @@ function allHumansGuessed(s: RoomState): boolean {
 function allHumansReady(pub: PublicRoom): boolean {
   return humanList(pub).every((p) => p.ready);
 }
-
-// ---------- Phase changes (these edit the working copy `d` in place) ----------
 
 function beginRound(d: RoomState, now: number, rng: Rng): void {
   const { pub, priv } = d;
@@ -240,7 +223,6 @@ function beginRound(d: RoomState, now: number, rng: Rng): void {
 function endWriting(d: RoomState, now: number, rng: Rng): void {
   const { pub, priv } = d;
 
-  // A player who asked for lies but ran out of time gets the first one that works.
   for (const player of humanList(pub)) {
     if (get(priv.cards, player.id)) continue;
     const draft = get(priv.drafts, player.id);
@@ -264,7 +246,6 @@ function endWriting(d: RoomState, now: number, rng: Rng): void {
   showCardFrom(d, 0, now, rng);
 }
 
-/** Shows the first card at or after `start` whose author is still here. */
 function showCardFrom(d: RoomState, start: number, now: number, rng: Rng): void {
   const { pub, priv } = d;
   for (let i = Math.max(0, start); i < pub.order.length; i++) {
@@ -283,8 +264,6 @@ function showCardFrom(d: RoomState, start: number, now: number, rng: Rng): void 
     let latest = now;
     for (const bot of bots) {
       const choice = randInt(rng, 0, 2) as Choice;
-      // With a human watching the clock, bots spread over the guess time.
-      // On a solo player's own card nobody is waiting, so they answer fast.
       const at = hasHumanGuesser
         ? Math.round(now + 2000 + rng() * (guessMs * 0.8 - 2000))
         : Math.round(now + 1500 + rng() * 4500);
@@ -349,7 +328,6 @@ function revealCard(d: RoomState, now: number, rng: Rng): void {
       correct += 1;
       statsOf(d, guesser.id).correct += 1;
     } else {
-      // Picking a truth means being fooled; not answering does not.
       if (entry) fooled += 1;
       delta = settings.penaltyWrong > 0 ? -settings.penaltyWrong : 0;
       if (settings.penaltyWrong > 0) guesser.cracks += 1;
@@ -429,7 +407,6 @@ function endGame(d: RoomState): void {
   const players = playerList(pub);
   const top = Math.max(0, ...players.map((p) => p.score));
 
-  // Highest value wins; nobody wins with zero; a tie goes to who joined first.
   const best = (value: (stats: PrivateStats) => number): string | null => {
     let winner: string | null = null;
     let highest = 0;
@@ -459,7 +436,6 @@ function endGame(d: RoomState): void {
   pub.seq += 1;
 }
 
-/** Ends the current phase, as a due timer or the host's "skip" does. */
 function advance(d: RoomState, now: number, rng: Rng): boolean {
   switch (d.pub.phase) {
     case "writing":
@@ -498,8 +474,6 @@ function removePlayer(d: RoomState, playerId: string, now: number, rng: Rng): vo
     delete pub.card.botGuessAt[playerId];
   }
 
-  // Keep `order` free of people who are gone, and `order[cardIndex]` pointing
-  // at the same card as before.
   const position = pub.order.indexOf(playerId);
   if (position !== -1) {
     pub.order.splice(position, 1);
@@ -516,7 +490,6 @@ function removePlayer(d: RoomState, playerId: string, now: number, rng: Rng): vo
   }
 
   if (wasOnScreen) {
-    // Their card is dropped unscored; the next one now sits at cardIndex.
     pub.card = null;
     pub.reveal = null;
     showCardFrom(d, pub.cardIndex, now, rng);
@@ -530,8 +503,6 @@ function removePlayer(d: RoomState, playerId: string, now: number, rng: Rng): vo
     endWriting(d, now, rng);
   }
 }
-
-// ---------- Exported actions ----------
 
 export function createRoom(a: {
   code: string;
@@ -699,7 +670,6 @@ export function startGame(
   return d;
 }
 
-/** How many more times this player may ask for lies this round. */
 export function draftsLeft(s: RoomState, playerId: string): number {
   const player = requirePlayer(s, playerId);
   if (player.isBot) fail("forbidden", "Bots do not write cards.");
@@ -709,7 +679,6 @@ export function draftsLeft(s: RoomState, playerId: string): number {
   return Math.max(0, LIMITS.MAX_DRAFTS_PER_ROUND - used);
 }
 
-/** Stores the lies the caller got for this player (or the fact that it got none). */
 export function setDraft(
   s: RoomState,
   a: {
@@ -830,11 +799,6 @@ export function submitGuess(
   return d;
 }
 
-/**
- * Moves the game on when the current phase's timer has run out. Any player's
- * browser may call it, any number of times: a tick that is early, late for a
- * phase that already ended, or sent while on hold returns the same room.
- */
 export function tick(s: RoomState, a: { seq: number; now: number; rng: Rng }): RoomState {
   const { pub } = s;
   if (a.seq !== pub.seq || pub.phaseEndsAt === null || pub.held) return s;
@@ -911,7 +875,6 @@ export function hostAction(
   }
 }
 
-/** What one player may know that the others may not. */
 export function meView(s: RoomState, playerId: string): MeResponse {
   requirePlayer(s, playerId);
   const draft = get(s.priv.drafts, playerId);

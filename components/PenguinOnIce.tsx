@@ -9,19 +9,12 @@ import { Penguin, type PenguinMood } from "./Penguin";
 const FLOE_TOP =
   "M14 18 Q20 6 44 6 L112 4 Q142 4 150 16 Q156 26 142 32 L118 38 Q80 44 40 38 L20 34 Q6 28 14 18 Z";
 
-// Three cracks, drawn in this order as a player loses points.
 const CRACKS = [
   "M72 6 L67 14 L76 21 L69 30 L74 40",
   "M108 5 L112 14 L103 20 L110 29 L105 36",
   "M38 8 L45 16 L36 24 L43 35",
 ];
 
-/**
- * A penguin standing on its ice floe. `cracks` draws up to three cracks.
- * `broken` plays the break: the floe splits and sinks, the penguin drops in
- * and rings spread on the water. Setting `broken` back to false brings both
- * back, which is what happens when a new round starts.
- */
 export function PenguinOnIce({
   avatar,
   cracks = 0,
@@ -33,7 +26,6 @@ export function PenguinOnIce({
   cracks?: number;
   broken?: boolean;
   mood?: PenguinMood;
-  /** Width of the floe in pixels. */
   size?: number;
 }) {
   // Each floe needs its own clip-path ids: several are on screen at once.
@@ -48,7 +40,6 @@ export function PenguinOnIce({
       style={{ width: size, height: size * 1.02 }}
       aria-hidden="true"
     >
-      {/* water rings, only while broken */}
       <AnimatePresence>
         {broken ? (
           <motion.svg
@@ -92,7 +83,6 @@ export function PenguinOnIce({
         ) : null}
       </AnimatePresence>
 
-      {/* the floe, in two halves so it can split */}
       <svg
         viewBox="0 0 160 56"
         className="absolute bottom-0 left-0 w-full overflow-visible"
@@ -152,7 +142,6 @@ export function PenguinOnIce({
         ))}
       </svg>
 
-      {/* the penguin */}
       <motion.div
         className="absolute left-1/2"
         style={{ width: size * 0.6, marginLeft: -(size * 0.3), top: size * 0.13 }}

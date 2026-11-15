@@ -12,10 +12,6 @@ type NumberKey = {
   [K in keyof Settings]: Settings[K] extends number ? K : never;
 }[keyof Settings];
 
-/**
- * The host's settings. Changes show at once and are sent a moment later in
- * one request, so tapping a stepper ten times does not make ten requests.
- */
 export function SettingsEditor({ ctx }: { ctx: GameCtx }) {
   const { api, code, token, room } = ctx;
   const [pending, setPending] = useState<SettingsPatch>({});
@@ -37,8 +33,6 @@ export function SettingsEditor({ ctx }: { ctx: GameCtx }) {
       try {
         await api.updateSettings(code, token, send);
         setError(null);
-        // The room now holds these values (or the server adjusted them), so
-        // stop overriding it once the update has had time to arrive.
         window.setTimeout(() => {
           setPending((current) => {
             const next: Record<string, unknown> = { ...current };
@@ -217,7 +211,6 @@ function Toggle({
   );
 }
 
-/** What players who are not the host see instead of the editor. */
 export function SettingsSummary({ settings }: { settings: Settings }) {
   const rows: [string, string][] = [
     ["Winning score", String(settings.targetScore)],

@@ -6,7 +6,6 @@ import { clock } from "./shared";
 const R = 20;
 const LENGTH = 2 * Math.PI * R;
 
-/** A ring that empties as the phase runs out, with the time left inside. */
 export function Countdown({
   startedAt,
   endsAt,

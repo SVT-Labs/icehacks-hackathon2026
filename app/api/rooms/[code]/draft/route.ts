@@ -16,16 +16,15 @@ export async function POST(request: Request, { params }: { params: Promise<{ cod
     const body = await readBody(request, DraftBodySchema);
     const truths = moderateTruths(body.truths);
 
-    // Step 1: may this player ask at all? Throws wrong_phase, forbidden or rate_limited.
     const room = await readRoom(code);
     draftsLeft(room.state, playerFor(room, token));
 
-    // Step 2: the AI call, outside any transaction. It never throws.
+    // The AI call stays outside the transaction: it is slow, and a transaction can
+    // run more than once.
     const ai = await draftLies(truths, room.state.pub.settings.lieOptions);
     if (ai.verdict === "unsafe") throw new GameError("unsafe", UNSAFE_MESSAGE);
 
-    // Step 3: store the result atomically. The AI never sees nicknames, so
-    // they go into the starters only now.
+    // The AI never sees nicknames, so they are added to the starters here.
     let response: DraftResponse = { candidates: [], source: "unavailable", draftsLeft: 0 };
     await playerAction(code, token, (s, playerId) => {
       const name = s.pub.players[playerId]?.name ?? "them";

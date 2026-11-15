@@ -3,8 +3,6 @@ import { Fredoka, Nunito } from "next/font/google";
 import { Providers } from "@/components/Providers";
 import "./globals.css";
 
-// Both fonts are downloaded at build time and served from this site,
-// so a visitor's browser never contacts Google.
 const fredoka = Fredoka({
   variable: "--font-fredoka",
   subsets: ["latin", "latin-ext"],
@@ -18,7 +16,7 @@ const nunito = Nunito({
 
 export const metadata: Metadata = {
   title: {
-    default: "Thin Ice: two truths and an AI lie",
+    default: "Thin Ice",
     template: "%s · Thin Ice",
   },
   description:

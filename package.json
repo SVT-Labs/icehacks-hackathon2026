@@ -8,11 +8,13 @@
     "start": "next start",
     "lint": "eslint",
     "test": "vitest run",
-    "smoke": "node scripts/smoke.mjs"
+    "smoke": "node scripts/smoke.mjs",
+    "security": "node scripts/security.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^1.8.0",
-    "firebase": "^13.3.0",
+    "@firebase/app": "^0.16.6",
+    "@firebase/database": "^1.1.6",
     "firebase-admin": "^14.5.1",
     "motion": "^14.14.0",
     "next": "16.4.6",

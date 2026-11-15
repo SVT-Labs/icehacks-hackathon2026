@@ -1,8 +1,11 @@
 // The live driver: HTTP calls to /api/rooms for every action, and a read-only
 // Firebase Realtime Database subscription for the room's public state.
 
-import { getApp, getApps, initializeApp, type FirebaseApp } from "firebase/app";
-import { getDatabase, onValue, ref, type Database } from "firebase/database";
+// The two Firebase parts this app uses, instead of the whole `firebase`
+// package: the rest (Firestore, Auth, Storage ...) would only add code and
+// dependencies that are never run.
+import { getApp, getApps, initializeApp, type FirebaseApp } from "@firebase/app";
+import { getDatabase, onValue, ref, type Database } from "@firebase/database";
 import {
   API_ERROR_CODES,
   PublicRoomSchema,
@@ -12,7 +15,30 @@ import {
 import { ApiFailure, type GameApi } from "./api";
 
 let database: Database | null = null;
-let clockOffset = 0;
+
+// How far this device's clock is from the server's. Phase end times are
+// stamped by the game server, so its clock is the one that counts: every API
+// answer carries it. Until the first answer arrives, Firebase's clock stands
+// in, which is the same to within a moment on a hosted site.
+let firebaseOffset = 0;
+let serverOffset: number | null = null;
+let bestRoundTrip = Infinity;
+let offsetTakenAt = 0;
+
+function noteServerTime(header: string | null, sentAt: number, receivedAt: number) {
+  const serverTime = Number(header);
+  if (!header || !Number.isFinite(serverTime)) return;
+  const roundTrip = receivedAt - sentAt;
+  // A quick answer gives the best estimate. Keep the quickest one seen, but
+  // refresh it now and then in case the device clock was changed.
+  const stale = receivedAt - offsetTakenAt > 60_000;
+  if (serverOffset !== null && roundTrip > bestRoundTrip && !stale) return;
+  bestRoundTrip = stale ? roundTrip : Math.min(bestRoundTrip, roundTrip);
+  offsetTakenAt = receivedAt;
+  // The stamp is written just before the answer is sent, so allow for the
+  // trip back: at most half the round trip, and never more than 150 ms.
+  serverOffset = serverTime + Math.min(roundTrip / 2, 150) - receivedAt;
+}
 
 function db(): Database {
   if (!database) {
@@ -27,7 +53,7 @@ function db(): Database {
     // Firebase reports how far this device's clock is from the server's.
     onValue(ref(database, ".info/serverTimeOffset"), (snap) => {
       const value: unknown = snap.val();
-      if (typeof value === "number") clockOffset = value;
+      if (typeof value === "number") firebaseOffset = value;
     });
   }
   return database;
@@ -39,6 +65,7 @@ async function call<T>(
   token: string | null,
   body?: unknown,
 ): Promise<T> {
+  const sentAt = Date.now();
   const response = await fetch(`/api/rooms${path}`, {
     method,
     headers: {
@@ -48,6 +75,7 @@ async function call<T>(
     body: body !== undefined ? JSON.stringify(body) : undefined,
     cache: "no-store",
   });
+  noteServerTime(response.headers.get("x-server-time"), sentAt, Date.now());
 
   let data: unknown = null;
   try {
@@ -120,5 +148,5 @@ export const liveApi: GameApi = {
     );
   },
 
-  now: () => Date.now() + clockOffset,
+  now: () => Date.now() + (serverOffset ?? firebaseOffset),
 };

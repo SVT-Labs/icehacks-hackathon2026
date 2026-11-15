@@ -4,7 +4,7 @@
 
 Thin Ice is a party game for friend groups, built for IceHacks 2026. Everyone writes two true things about themselves, an AI forges a third, and the rest of the group has to spot the fake. A wrong guess cracks the ice under your penguin. Every reveal ends with a story to ask about, so a quiet group chat has something to talk about.
 
-> **Status:** the frontend, the game rules and their tests are complete and playable in demo mode. The server (API routes, database, AI call) is being built from [docs/BACKEND_PROMPT.md](docs/BACKEND_PROMPT.md). The live link and the demo video will be added here.
+> **Live site:** to be added. **Demo video:** to be added.
 
 ## How a game goes
 
@@ -81,7 +81,19 @@ npm run lint
 npm run build
 ```
 
-`npm test` runs the engine tests: scoring with exact numbers, every phase change, bots, late joiners, leaving, and a check that nothing public reveals the lie before its reveal.
+`npm test` runs 83 tests: the rules engine (scoring with exact numbers, every phase change, bots, late joiners, leaving), the API routes played end to end, the checks on the AI's answers, and a test that nothing public reveals the lie before its reveal.
+
+With the dev server running, two more scripts exercise the real thing over HTTP. Both also work against the deployed site with `BASE_URL=https://...`.
+
+```bash
+npm run smoke
+```
+
+```bash
+npm run security
+```
+
+`npm run smoke` plays a whole solo game. `npm run security` plays a hostile visitor and makes 54 checks: it tries to read the private half of a room and to write to the database with no login, uses wrong, missing and borrowed tokens, calls host actions as a guest, sends malformed input, tries to peek at other players' cards, and replays stale and repeated guesses.
 
 ## Settings
 
@@ -106,8 +118,12 @@ lib/types.ts          The contract (Zod): public room, settings, API bodies
 lib/constants.ts      Limits and setting ranges
 lib/game/             The rules engine, the private room state and the bot characters
 lib/client/           Drivers (live and demo), identity, sound, dictation
-tests/                Engine tests
-docs/BACKEND_PROMPT.md  The brief the backend is built from
+app/api/rooms/        The API routes
+lib/server/           Storage, the AI call, moderation and HTTP helpers
+tests/                Engine and server tests
+scripts/              smoke.mjs (plays a game over HTTP) and security.mjs (misuse checks)
+database.rules.json   Who may read what in the database
+docs/BACKEND_PROMPT.md  The brief the backend was built from
 ```
 
 ## Privacy and safety
@@ -116,6 +132,11 @@ docs/BACKEND_PROMPT.md  The brief the backend is built from
 - A room can only be opened by someone who has its link, and pages are marked not to be indexed by search engines.
 - Players are told, where they type, that everyone in the room will read what they write.
 - Nicknames are not sent to the AI.
+- Which statement is the lie is stored where browsers cannot read it, and only the server writes to the database. `database.rules.json` allows one thing: reading the public half of a room you know the code of.
+- Every action is checked on the server against a secret token given to that player when they joined. The host's actions are refused for anyone else.
+- What players type is shown as plain text, never as HTML, and is checked before it is stored: links, e-mail addresses, phone numbers and a block list are refused, and the AI refuses truths that bully someone or contain private details.
+- The API keys and the database's private key exist only on the server. A check of the production build found none of them in the code sent to browsers.
+- Pages are served with headers that stop them being framed by another site and stop room links leaking to other sites.
 
 ## Backend
 
@@ -177,7 +198,7 @@ The smoke script plays a solo game over HTTP and exits non-zero on any failure. 
 ## Credits
 
 - Built with Claude Code (Anthropic) as a coding assistant: Claude wrote most of the code under the team's direction, and the team reviewed, tested and directed the design.
-- Libraries: Next.js, React, Tailwind CSS, Motion, Zod, Firebase, Vitest.
+- Libraries: Next.js, React, Tailwind CSS, Motion, Zod, Firebase (`@firebase/app`, `@firebase/database`, `firebase-admin`), the Anthropic SDK, Vitest.
 - Fonts: Fredoka and Nunito (SIL Open Font License), self-hosted through `next/font`.
 - The penguin, ice and icon drawings are original SVG made for this project.
 

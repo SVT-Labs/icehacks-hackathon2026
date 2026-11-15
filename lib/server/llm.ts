@@ -41,7 +41,8 @@ Return JSON with:
   - match their voice, tense, length and level of detail, so it cannot be spotted by style;
   - be believable for the same person but false;
   - not contradict or repeat either truth;
-  - differ clearly from the other lies;
+  - differ clearly from the other lies, each about a different area of life;
+  - avoid stock party-game lies that many players would get, such as solving a Rubik's cube, meeting a celebrity, winning an eating or spelling contest, or never having flown;
   - be between ${LIMITS.STATEMENT_MIN} and ${LIMITS.STATEMENT_MAX} characters;
   - be suitable for players aged 13 and up.
 - "starters": exactly two short conversation starters, the first about truth 1 and the second about truth 2, in the truths' language, written about the player in the third person with the literal placeholder {name} where the player's nickname goes. Example: "Ask {name} how the museum night ended."`;
@@ -57,6 +58,7 @@ export type LlmDeps = {
   /** The SDK's messages.parse; replaced in tests. */
   parse?: ParseFn;
   now?: () => number;
+  rng?: () => number;
   env?: Record<string, string | undefined>;
 };
 
@@ -118,12 +120,50 @@ export function checkOutput(
   return { ok: true, lies: kept, starters: [starters[0], starters[1]] };
 }
 
-function userMessage(truths: readonly [string, string], wanted: number, problems: string[]): string {
+/** Areas a lie can be about. A few are suggested per request, for variety. */
+const TOPICS = [
+  "food and cooking",
+  "school or work",
+  "family",
+  "pets and animals",
+  "travel and getting lost",
+  "sport and games",
+  "music and films",
+  "fears and dislikes",
+  "small accidents",
+  "odd skills and habits",
+  "childhood",
+  "things they own or collect",
+  "weather and the outdoors",
+  "technology",
+  "sleep and dreams",
+  "clothes and appearance",
+];
+
+function pickTopics(count: number, rng: () => number): string[] {
+  const pool = [...TOPICS];
+  const picked: string[] = [];
+  while (picked.length < count && pool.length > 0) {
+    picked.push(pool.splice(Math.floor(rng() * pool.length), 1)[0]);
+  }
+  return picked;
+}
+
+function userMessage(
+  truths: readonly [string, string],
+  wanted: number,
+  problems: string[],
+  topics: string[] = [],
+): string {
   const fix =
     problems.length > 0
       ? `\n\nYour previous answer had these problems. Fix them:\n- ${problems.join("\n- ")}`
       : "";
-  return `Write ${wanted} lies.\n\n<truths>\n1. ${truths[0]}\n2. ${truths[1]}\n</truths>${fix}`;
+  const steer =
+    topics.length > 0
+      ? ` Where it suits this player, draw them from these areas, one each: ${topics.join("; ")}.`
+      : "";
+  return `Write ${wanted} lies.${steer}\n\n<truths>\n1. ${truths[0]}\n2. ${truths[1]}\n</truths>${fix}`;
 }
 
 /** Asks the AI for lies. Never throws. */
@@ -153,6 +193,7 @@ export async function draftLies(
   const parse = deps.parse ?? defaultParse(apiKey!);
   const model = env.LLM_MODEL || "claude-sonnet-5-5";
   const deadline = now() + TOTAL_BUDGET_MS;
+  const topics = pickTopics(wanted, deps.rng ?? Math.random);
   let problems: string[] = [];
 
   for (let attempt = 0; attempt < 2; attempt++) {
@@ -171,7 +212,7 @@ export async function draftLies(
           model,
           max_tokens: MAX_TOKENS,
           system: SYSTEM,
-          messages: [{ role: "user", content: userMessage(truths, wanted, problems) }],
+          messages: [{ role: "user", content: userMessage(truths, wanted, problems, topics) }],
           output_config: { effort: "low", format: zodOutputFormat(LlmOutputSchema) },
         },
         { timeout: remaining, maxRetries: 0 },

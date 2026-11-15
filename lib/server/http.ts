@@ -14,7 +14,9 @@ const ID_ALPHABET = "abcdefghijklmnopqrstuvwxyz0123456789";
 export function json(data: unknown, status = 200, headers: Record<string, string> = {}): Response {
   return Response.json(data, {
     status,
-    headers: { "Cache-Control": "no-store", ...headers },
+    // X-Server-Time lets browsers line their countdowns up with this
+    // server's clock, whatever their own clock says.
+    headers: { "Cache-Control": "no-store", "X-Server-Time": String(Date.now()), ...headers },
   });
 }
 

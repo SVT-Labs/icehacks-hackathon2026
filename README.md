@@ -4,7 +4,7 @@
 
 Thin Ice is a party game for friend groups, built for IceHacks 2026. Everyone writes two true things about themselves, an AI forges a third, and the rest of the group has to spot the fake. A wrong guess cracks the ice under your penguin. Every reveal ends with a story to ask about, so a quiet group chat has something to talk about.
 
-> **Live site:** to be added. **Demo video:** to be added.
+> **Live site:** [thinicegame.netlify.app](https://thinicegame.netlify.app). **Demo video:** [watch on YouTube](https://www.youtube.com/watch?v=G2JvroX0AKk).
 
 ## How a game goes
 
